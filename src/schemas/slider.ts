@@ -139,6 +139,29 @@ export const settingsSchema = z.object({
   productSort: z.enum(["manual", "newest", "name", "price"]).default("manual"),
   syncProducts: z.boolean().default(true),
 });
+export const layerSchema = z.object({
+  _id: z.string().min(1).max(100),
+  kind: z.enum(["text", "button"]),
+  text: z.string().max(3000).default(""),
+  variant: z
+    .enum(["heading", "paragraph", "badge", "price"])
+    .default("paragraph"),
+  zone: positionSchema.default("center-left"),
+  offsetX: n(-2000, 2000, 0),
+  offsetY: n(-2000, 2000, 0),
+  width: n(5, 100, 80),
+  maxWidth: n(40, 2000, 640),
+  inheritTypography: z.boolean().default(true),
+  typography: typographySchema.default({}),
+  button: buttonSchema.default({}),
+  devices: z
+    .object({
+      desktop: z.boolean().default(true),
+      tablet: z.boolean().default(true),
+      mobile: z.boolean().default(true),
+    })
+    .default({}),
+});
 export const scheduleSchema = z
   .object({ start: z.string().default(""), end: z.string().default("") })
   .superRefine((v, ctx) => {
@@ -261,6 +284,7 @@ const common = {
     .default({}),
   visibility: visibilitySchema.default({}),
   schedule: scheduleSchema.default({}),
+  layers: z.array(layerSchema).max(40).default([]),
 };
 export const imageSlideSchema = z.object({
   ...common,
@@ -294,13 +318,73 @@ export const productSlideSchema = z.object({
     })
     .default({}),
 });
-export const slideSchema = z.discriminatedUnion("type", [
-  imageSlideSchema,
-  videoSlideSchema,
-  productSlideSchema,
-  promotionSlideSchema,
-  textSlideSchema,
-]);
+type Raw = Record<string, unknown>;
+const obj = (v: unknown): Raw =>
+  typeof v === "object" && v !== null ? (v as Raw) : {};
+const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+/** Converts slides saved before layers existed (fixed badge/title/description/
+ * buttons fields) into equivalent layers, so older sliders keep rendering. */
+function migrateLegacyLayers(input: unknown) {
+  const raw = obj(input);
+  if (Array.isArray(raw.layers) || raw.type === "product" || !raw._id)
+    return input;
+  const style = obj(raw.style);
+  const base = {
+    zone: style.position ?? "center-left",
+    offsetX: style.offsetX ?? 0,
+    offsetY: style.offsetY ?? 0,
+    width: style.contentWidth ?? 80,
+    maxWidth: style.maxContentWidth ?? 640,
+  };
+  const layers: Raw[] = [];
+  const add = (layer: Raw) =>
+    layers.push({ ...base, ...layer, _id: `${raw._id}-l${layers.length}` });
+  const text = (value: unknown, variant: string) =>
+    str(value) && add({ kind: "text", variant, text: str(value) });
+  text(raw.badge, "badge");
+  text(raw.subtitle, "paragraph");
+  text(raw.title, "heading");
+  text(raw.description, "paragraph");
+  text(raw.discount, "price");
+  for (const key of ["primaryButton", "secondaryButton"]) {
+    const b = obj(raw[key]);
+    if (str(b.label)) add({ kind: "button", text: str(b.label), button: b });
+  }
+  if (str(raw.link))
+    add({
+      kind: "button",
+      text: "Learn more →",
+      button: {
+        url: str(raw.link),
+        background: "#00000000",
+        hoverBackground: "#00000000",
+        color: obj(style.heading).color ?? "#ffffff",
+        hoverColor: obj(style.heading).color ?? "#ffffff",
+        padding: 0,
+      },
+    });
+  return {
+    ...raw,
+    layers,
+    badge: "",
+    subtitle: "",
+    description: "",
+    discount: "",
+    link: "",
+    primaryButton: {},
+    secondaryButton: {},
+  };
+}
+export const slideSchema = z.preprocess(
+  migrateLegacyLayers,
+  z.discriminatedUnion("type", [
+    imageSlideSchema,
+    videoSlideSchema,
+    productSlideSchema,
+    promotionSlideSchema,
+    textSlideSchema,
+  ]),
+);
 export const sliderTypeSchema = z.enum([
   "image",
   "video",
@@ -350,6 +434,8 @@ export const appSettingsSchema = z.object({
   catalogVersion: z.enum(["V1", "V3"]).default("V1"),
 });
 export type Slide = z.infer<typeof slideSchema>;
+export type Layer = z.infer<typeof layerSchema>;
+export type LayerZone = z.infer<typeof positionSchema>;
 export type Slider = z.infer<typeof sliderSchema>;
 export type SliderSettings = z.infer<typeof settingsSchema>;
 export type ResponsiveSettings = z.infer<typeof responsiveSchema>;

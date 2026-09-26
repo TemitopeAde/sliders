@@ -86,12 +86,26 @@ export function Settings() {
               </p>
             </div>
           </section>
-          <Button
-            disabled={form.formState.isSubmitting || !form.formState.isDirty}
-          >
-            <Save size={16} />
-            {form.formState.isSubmitting ? "Saving…" : "Save settings"}
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              disabled={form.formState.isSubmitting || !form.formState.isDirty}
+            >
+              <Save size={16} />
+              {form.formState.isSubmitting ? "Saving…" : "Save settings"}
+            </Button>
+            {form.formState.isDirty && !form.formState.isSubmitting && (
+              <>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => form.reset()}
+                >
+                  Discard
+                </Button>
+                <span className="muted">You have unsaved changes.</span>
+              </>
+            )}
+          </div>
         </form>
       )}
     </>

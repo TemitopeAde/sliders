@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { dashboard } from "@wix/dashboard";
 import { toast } from "sonner";
 import { ImagePlus } from "lucide-react";
@@ -6,10 +6,10 @@ import {
   slideSchema,
   imageSlideSchema,
   productSlideSchema,
-  positionSchema,
   type Slide,
 } from "../../schemas/slider";
 import { SchemaFields } from "./SchemaFields";
+import { LayersPanel } from "./LayersPanel";
 import { VisibilitySettings } from "./VisibilitySettings";
 import { ProductPicker } from "../forms/ProductPicker";
 import { Button } from "../ui/button";
@@ -17,12 +17,19 @@ import { Choice } from "../forms/Fields";
 export function SlideSettings({
   slide,
   onChange,
+  selectedLayer,
+  onSelectLayer,
 }: {
   slide: Slide;
   onChange: (s: Slide) => void;
+  selectedLayer?: string;
+  onSelectLayer: (id?: string) => void;
 }) {
   const [tab, setTab] = useState("Content");
   const [error, setError] = useState("");
+  useEffect(() => {
+    if (selectedLayer) setTab("Content");
+  }, [selectedLayer]);
   const schema =
     slide.type === "product" ? productSlideSchema : imageSlideSchema;
   const set = (value: Record<string, unknown>) => {
@@ -40,7 +47,6 @@ export function SlideSettings({
     "Media",
     "Layout",
     "Style",
-    "Link",
     "Animation",
     "Responsive",
     "Visibility",
@@ -64,9 +70,18 @@ export function SlideSettings({
           <SchemaFields
             schema={schema}
             value={slide}
-            only={["title", "subtitle", "description", "badge", "discount"]}
+            only={["title"]}
+            labels={{ title: "Slide name" }}
             onChange={set}
           />
+          {slide.type !== "product" && (
+            <LayersPanel
+              layers={slide.layers}
+              selected={selectedLayer}
+              onSelect={onSelectLayer}
+              onChange={(layers) => set({ ...slide, layers })}
+            />
+          )}
           {slide.type === "product" && (
             <>
               <ProductPicker
@@ -140,33 +155,17 @@ export function SlideSettings({
       )}
       {tab === "Layout" && (
         <>
-          <span className="field-label">Content position</span>
-          <div className="position-grid">
-            {positionSchema.options.map((p) => (
-              <button
-                key={p}
-                data-selected={slide.style.position === p}
-                aria-label={p.replaceAll("-", " ")}
-                onClick={() =>
-                  onChange({ ...slide, style: { ...slide.style, position: p } })
-                }
-              >
-                ·
-              </button>
-            ))}
-          </div>
           <SchemaFields
             schema={imageSlideSchema.shape.style}
             value={slide.style}
-            only={[
-              "offsetX",
-              "offsetY",
-              "contentWidth",
-              "maxContentWidth",
-              "padding",
-            ]}
+            only={["padding"]}
+            labels={{ padding: "Edge spacing (px)" }}
             onChange={(v) => set({ ...slide, style: v })}
           />
+          <p className="muted">
+            Space kept between the slide edges and its text and buttons. Place
+            each text or button from the Content tab, or drag it in the preview.
+          </p>
         </>
       )}
       {tab === "Style" && (
@@ -184,14 +183,6 @@ export function SlideSettings({
             "description",
           ]}
           onChange={(v) => set({ ...slide, style: v })}
-        />
-      )}
-      {tab === "Link" && (
-        <SchemaFields
-          schema={schema}
-          value={slide}
-          only={["link", "primaryButton", "secondaryButton"]}
-          onChange={set}
         />
       )}
       {tab === "Animation" && (

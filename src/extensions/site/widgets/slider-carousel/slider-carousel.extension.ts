@@ -17,7 +17,7 @@ export default extensions.customElement({
     {
       id: "367c3aed-cf38-413f-b7b8-ec900cfeae65",
       name: "default",
-      thumbnailUrl: "{{BASE_URL}}/slider-carousel-thumbnail.png",
+      thumbnailUrl: "{{BASE_URL}}/slider-carousel-banner-thumbnail.png",
     },
   ],
 

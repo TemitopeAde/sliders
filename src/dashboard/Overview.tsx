@@ -13,7 +13,13 @@ import {
 import type { Slider, SliderTemplate } from "../schemas/slider";
 import type { AnalyticsSummary } from "../lib/analytics/aggregate";
 import { Button } from "../components/ui/button";
-import { PageHeading, SectionTitle, Empty, Status } from "./Shared";
+import {
+  PageHeading,
+  SectionTitle,
+  Empty,
+  Status,
+  SliderThumb,
+} from "./Shared";
 import { TemplateCard, TemplatePreview } from "./Templates";
 export function Overview({
   sliders,
@@ -23,6 +29,7 @@ export function Overview({
   onEdit,
   onTemplates,
   onSliders,
+  onAnalytics,
 }: {
   sliders: Slider[];
   templates: SliderTemplate[];
@@ -31,6 +38,7 @@ export function Overview({
   onEdit: (s: Slider) => void;
   onTemplates: () => void;
   onSliders: () => void;
+  onAnalytics: (s: Slider) => void;
 }) {
   const [preview, setPreview] = useState<SliderTemplate>();
   const stats = [
@@ -77,7 +85,13 @@ export function Overview({
       detail: "Clicks / impressions",
     },
   ];
-  const top = analytics?.sliders[0];
+  const topStats = analytics?.sliders.find((a) => a.views > 0);
+  const topSlider = sliders.find((s) => s._id === topStats?.name);
+  const top =
+    topStats && topSlider ? { ...topStats, slider: topSlider } : undefined;
+  const recentSliders = [...sliders]
+    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
+    .slice(0, 4);
   return (
     <>
       <PageHeading
@@ -159,31 +173,26 @@ export function Overview({
             <Empty onCreate={() => onCreate()} />
           ) : (
             <div className="divide-y">
-              {sliders.slice(0, 4).map((s) => (
+              {recentSliders.map((s) => (
                 <button
-                  className="w-full py-4 flex items-center gap-3 text-left"
+                  className="w-full py-3 px-2 -mx-2 rounded-lg flex items-center gap-3 text-left hover:bg-gray-50 group"
                   key={s._id}
                   onClick={() => onEdit(s)}
                 >
-                  <div className="w-14 h-10 rounded bg-gray-100 overflow-hidden flex items-center justify-center">
-                    {s.slides[0]?.media.url ? (
-                      <img
-                        src={s.slides[0].media.poster || s.slides[0].media.url}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Layers size={19} className="text-gray-400" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm mb-1">{s.name}</p>
+                  <SliderThumb slider={s} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm mb-1 truncate">
+                      {s.name}
+                    </p>
                     <p className="text-xs text-gray-400 mb-0 capitalize">
                       {s.slides.length} slides · {s.type}
                     </p>
                   </div>
                   <Status value={s.status} />
-                  <ArrowRight size={15} className="text-gray-400" />
+                  <ArrowRight
+                    size={15}
+                    className="text-gray-400 transition-transform group-hover:translate-x-0.5"
+                  />
                 </button>
               ))}
             </div>
@@ -191,40 +200,58 @@ export function Overview({
         </section>
         <section className="surface p-5">
           <SectionTitle title="Performance spotlight" />
-          <div className="bg-[#f6f8fe] rounded-lg p-5 mt-5">
-            <span className="text-xs text-gray-500">Top-performing slider</span>
-            <h3 className="text-lg font-semibold mt-3 mb-2">
-              {top
-                ? (sliders.find((s) => s._id === top.name)?.name ??
-                  "Published slider")
-                : "Your next success story"}
-            </h3>
-            <p className="muted leading-relaxed">
-              {top
-                ? `${top.views.toLocaleString()} impressions · ${top.clicks.toLocaleString()} clicks`
-                : "Once your sliders are live, see what catches your visitors’ attention right here."}
-            </p>
-            <div className="flex items-end gap-2 h-20 mt-6" aria-hidden="true">
-              {[25, 38, 32, 51, 44, 62, 52, 72, 60, 85, 77, 98].map(
-                (height, i) => (
-                  <div
-                    key={i}
-                    className={
-                      top
-                        ? "bg-blue-400 rounded-t flex-1"
-                        : "bg-[#dfe6f7] rounded-t flex-1"
-                    }
-                    style={{ height: `${height}%` }}
-                  />
-                ),
-              )}
+          {top ? (
+            <div className="bg-[#f6f8fe] rounded-lg p-5">
+              <span className="text-xs text-gray-500">
+                Top-performing slider · last 30 days
+              </span>
+              <div className="flex items-center gap-3 mt-3 mb-5">
+                <SliderThumb slider={top.slider} />
+                <h3 className="text-lg font-semibold m-0 truncate">
+                  {top.slider.name}
+                </h3>
+              </div>
+              <dl className="grid grid-cols-3 gap-3 mb-5">
+                {[
+                  ["Impressions", top.views.toLocaleString()],
+                  ["Clicks", top.clicks.toLocaleString()],
+                  [
+                    "CTR",
+                    `${((top.clicks / Math.max(1, top.views)) * 100).toFixed(1)}%`,
+                  ],
+                ].map(([label, value]) => (
+                  <div key={label} className="bg-white rounded-md p-3">
+                    <dt className="text-[11px] text-gray-500 mb-1">{label}</dt>
+                    <dd className="text-base font-semibold m-0 tabular-nums">
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-white"
+                onClick={() => onAnalytics(top.slider)}
+              >
+                View analytics
+                <ArrowRight size={14} />
+              </Button>
             </div>
-            {!top && (
-              <p className="text-[10px] text-gray-400 mt-2 mb-0">
-                Illustration · awaiting live data
+          ) : (
+            <div className="bg-[#f6f8fe] rounded-lg p-5 text-center">
+              <div className="w-11 h-11 rounded-xl bg-white text-blue-500 flex items-center justify-center mx-auto mb-3">
+                <TrendingUp size={20} />
+              </div>
+              <h3 className="text-base font-semibold mb-2">
+                Your next success story
+              </h3>
+              <p className="muted leading-relaxed mb-0">
+                Once a published slider gets visitors, its impressions and
+                clicks show up here.
               </p>
-            )}
-          </div>
+            </div>
+          )}
         </section>
       </div>
       <SectionTitle

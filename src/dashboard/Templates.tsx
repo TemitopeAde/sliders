@@ -37,7 +37,8 @@ export function TemplateCard({
         <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/5 to-transparent" />
         <div className="absolute left-5 bottom-6 right-10 text-white">
           <span className="text-[8px] tracking-[.2em]">
-            {template.slides[0]?.badge || "MAKE IT YOUR OWN"}
+            {template.slides[0]?.layers.find((l) => l.variant === "badge")
+              ?.text || "MAKE IT YOUR OWN"}
           </span>
           <p className="text-xl leading-tight font-semibold mt-1 mb-0 max-w-44">
             {template.slides[0]?.title}
@@ -57,11 +58,12 @@ export function TemplateCard({
         </div>
         <Button
           aria-label={`Use ${template.name}`}
-          size="icon"
-          variant="ghost"
+          size="sm"
+          variant="outline"
           onClick={() => onUse(template)}
         >
-          <ArrowUpRight size={17} />
+          Use
+          <ArrowUpRight size={14} />
         </Button>
       </div>
     </article>
@@ -106,6 +108,7 @@ export function Templates({
             variant={filter === c ? "default" : "ghost"}
             size="sm"
             onClick={() => setFilter(c)}
+            aria-pressed={filter === c}
           >
             {c}
           </Button>
@@ -132,9 +135,21 @@ export function Templates({
         ))}
       </div>
       {!visible.length && (
-        <p className="muted text-center py-10">
-          No templates match your search.
-        </p>
+        <div className="surface text-center py-12 px-6">
+          <h2 className="text-base font-semibold mb-2">No templates match</h2>
+          <p className="muted mb-5">
+            Try another name or browse every category.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSearch("");
+              setFilter("All templates");
+            }}
+          >
+            Show all templates
+          </Button>
+        </div>
       )}
       <TemplatePreview
         template={preview}

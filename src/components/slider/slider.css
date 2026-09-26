@@ -30,18 +30,61 @@
   z-index: -1;
   pointer-events: none;
 }
-.sl-content {
-  position: relative;
+.sl-zone {
+  position: absolute;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
 }
-.sl-content h2 {
-  margin: 12px 0 16px;
-  overflow-wrap: anywhere;
+.sl-zone-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 100%;
 }
-.sl-content p {
-  margin: 0 0 22px;
+.sl-layer {
+  margin: 0;
+  pointer-events: auto;
   white-space: pre-line;
   overflow-wrap: anywhere;
+}
+.sl-zone-inner > .sl-buttons {
+  width: 100%;
+  pointer-events: none;
+}
+.sl-layer.swiper-no-swiping {
+  cursor: grab;
+  outline: 1px dashed transparent;
+  outline-offset: 4px;
+  touch-action: none;
+  user-select: none;
+}
+.sl-layer.swiper-no-swiping:hover {
+  outline-color: #ffffffb3;
+}
+.sl-layer[data-layer-selected="true"] {
+  outline: 2px solid #4263eb;
+  outline-offset: 4px;
+}
+.sl-layer.swiper-no-swiping:active {
+  cursor: grabbing;
+}
+.sl-drop-grid {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  pointer-events: none;
+}
+.sl-drop-grid span {
+  border: 1px dashed #ffffff59;
+}
+.sl-drop-grid span[data-target="true"] {
+  background: #4263eb2e;
+  border: 2px solid #4263eb;
 }
 .sl-badge {
   display: inline-block;

@@ -5,6 +5,13 @@ import type { Slider } from "../schemas/slider";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "../components/ui/select";
+import {
   PageHeading,
   ErrorNotice,
   LoadingCards,
@@ -14,9 +21,11 @@ import {
 export function Analytics({
   sliders,
   sliderId,
+  onSliderChange,
 }: {
   sliders: Slider[];
   sliderId?: string;
+  onSliderChange: (id?: string) => void;
 }) {
   const [days, setDays] = useState(30);
   const [custom, setCustom] = useState(false);
@@ -42,6 +51,22 @@ export function Analytics({
             : "See what draws attention, sparks a click, and keeps visitors watching."
         }
       >
+        <Select
+          value={sliderId ?? "all"}
+          onValueChange={(v) => onSliderChange(v === "all" ? undefined : v)}
+        >
+          <SelectTrigger className="bg-white h-10 min-w-48" aria-label="Slider">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All sliders</SelectItem>
+            {sliders.map((s) => (
+              <SelectItem key={s._id} value={s._id}>
+                {s.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="flex gap-1 bg-white rounded-lg border p-1">
           {[7, 30, 90].map((d) => (
             <Button
@@ -124,7 +149,11 @@ export function Analytics({
                     <span className="text-xs">{s.label}</span>
                     <s.icon size={17} />
                   </div>
-                  <div className="stat-value">{s.value}</div>
+                  <div className="stat-value tabular-nums">
+                    {typeof s.value === "number"
+                      ? s.value.toLocaleString()
+                      : s.value}
+                  </div>
                 </div>
               ))}
             </div>
@@ -190,7 +219,11 @@ export function Analytics({
                     name: sliders.find((s) => s._id === t.name)?.name ?? t.name,
                   })),
                 },
-                { title: "Device breakdown", rows: data.devices },
+                {
+                  title: "Device breakdown",
+                  rows: data.devices,
+                  capitalize: true,
+                },
                 {
                   title: "Top slides",
                   rows: data.slides.map((t) => ({
@@ -209,15 +242,29 @@ export function Analytics({
                     <div>
                       {section.rows.slice(0, 10).map((row, i) => (
                         <div
-                          className="flex justify-between items-center py-3 border-b last:border-0 text-sm"
+                          className="py-3 border-b last:border-0 text-sm"
                           key={`${row.name}-${i}`}
                         >
-                          <span className="truncate max-w-[65%] capitalize">
-                            {row.name}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {row.views} views · {row.clicks} clicks
-                          </span>
+                          <div className="flex justify-between items-center gap-4 mb-2">
+                            <span
+                              className={`truncate ${"capitalize" in section ? "capitalize" : ""}`}
+                              title={row.name}
+                            >
+                              {row.name}
+                            </span>
+                            <span className="text-xs text-gray-500 whitespace-nowrap tabular-nums">
+                              {row.views.toLocaleString()} views ·{" "}
+                              {row.clicks.toLocaleString()} clicks
+                            </span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-blue-400"
+                              style={{
+                                width: `${(row.views / Math.max(1, data.views)) * 100}%`,
+                              }}
+                            />
+                          </div>
                         </div>
                       ))}
                     </div>

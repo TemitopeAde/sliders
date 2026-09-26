@@ -7,6 +7,8 @@ import {
 } from "../../schemas/slider";
 const photo = (id: string) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=1600&q=85`;
+const thumbnail = (id: string) =>
+  `https://images.unsplash.com/${id}?auto=format&fit=crop&w=600&q=70`;
 const designs = [
   [
     "hero-banner",
@@ -171,56 +173,546 @@ const designs = [
     "#554337",
   ],
 ] as const;
-export const starterTemplates: SliderTemplate[] = designs.map(
-  ([id, name, category, image, title, description, background]) => {
-    const multi =
-      ["Products", "Content"].includes(category) && id !== "testimonial-slider";
-    const isText = !image;
-    const slide = slideSchema.parse({
-      _id: `${id}-slide`,
-      type: isText ? "text" : category === "Promotions" ? "promotion" : "image",
-      title,
-      description,
-      badge: category === "Promotions" ? "LIMITED TIME" : "THE NEW COLLECTION",
-      media: { url: image ? photo(image) : "", alt: name },
-      style: {
-        background,
-        overlay: image ? 0.22 : 0,
-        heading: { color: isText ? "#28372f" : "#ffffff" },
-        description: { color: isText ? "#526257" : "#ffffff" },
-        inheritTypography: !isText,
-        position: "center-left",
+const additionalDesigns = [
+  [
+    "editorial-hero",
+    "Editorial Hero",
+    "Hero",
+    "photo-1441986300917-64674bd600d8",
+    "A new point of view.",
+    "A bold opening for your latest story.",
+    "#252c2c",
+  ],
+  [
+    "wellness-hero",
+    "Wellness Hero",
+    "Hero",
+    "photo-1518837695005-2083093ee35b",
+    "Make space to feel good.",
+    "A calmer way to introduce your brand.",
+    "#41615d",
+  ],
+  [
+    "travel-hero",
+    "Travel Hero",
+    "Hero",
+    "photo-1464822759023-fed622ff2c3b",
+    "The journey starts here.",
+    "Put your next destination in focus.",
+    "#263b4a",
+  ],
+  [
+    "fashion-hero",
+    "Fashion Hero",
+    "Hero",
+    "photo-1441986300917-64674bd600d8",
+    "Wear what moves you.",
+    "Introduce a collection with confidence.",
+    "#483b37",
+  ],
+  [
+    "home-hero",
+    "Home Hero",
+    "Hero",
+    "photo-1600210492486-724fe5c67fb0",
+    "Feel at home, everywhere.",
+    "Give your interiors a welcoming first impression.",
+    "#3d4940",
+  ],
+  [
+    "studio-hero",
+    "Studio Hero",
+    "Hero",
+    "photo-1518837695005-2083093ee35b",
+    "Ideas made visible.",
+    "A clean canvas for creative work.",
+    "#30444c",
+  ],
+  [
+    "outdoor-hero",
+    "Outdoor Hero",
+    "Hero",
+    "photo-1470770841072-f978cf4d019e",
+    "Take the scenic route.",
+    "Set the scene for your next adventure.",
+    "#334b40",
+  ],
+  [
+    "launch-hero",
+    "Launch Hero",
+    "Hero",
+    "photo-1492684223066-81342ee5ff30",
+    "Something new is here.",
+    "Make your next launch impossible to miss.",
+    "#3c344d",
+  ],
+  [
+    "skincare-edit",
+    "Skincare Edit",
+    "Products",
+    "photo-1541643600914-78b084683601",
+    "A ritual worth keeping.",
+    "Present the essentials in one elegant carousel.",
+    "#b7a68b",
+  ],
+  [
+    "coffee-selection",
+    "Coffee Selection",
+    "Products",
+    "photo-1495474472287-4d71bcdd2085",
+    "Your daily favorite.",
+    "Showcase the blends your customers love.",
+    "#5a4033",
+  ],
+  [
+    "ceramics-collection",
+    "Ceramics Collection",
+    "Products",
+    "photo-1600210492486-724fe5c67fb0",
+    "Made for everyday moments.",
+    "Give crafted pieces room to shine.",
+    "#796b5c",
+  ],
+  [
+    "footwear-favorites",
+    "Footwear Favorites",
+    "Products",
+    "photo-1542291026-7eec264c27ff",
+    "Find your next step.",
+    "Put your standout styles in motion.",
+    "#963f37",
+  ],
+  [
+    "furniture-edit",
+    "Furniture Edit",
+    "Products",
+    "photo-1600596542815-ffad4c1539a9",
+    "A room to remember.",
+    "Show furniture in a lived-in setting.",
+    "#4f584e",
+  ],
+  [
+    "accessory-spotlight",
+    "Accessory Spotlight",
+    "Products",
+    "photo-1541643600914-78b084683601",
+    "The finishing touch.",
+    "Highlight small details with big impact.",
+    "#665a50",
+  ],
+  [
+    "home-essentials",
+    "Home Essentials",
+    "Products",
+    "photo-1600210492486-724fe5c67fb0",
+    "The pieces you return to.",
+    "A practical edit for every room.",
+    "#56665a",
+  ],
+  [
+    "gift-guide",
+    "Gift Guide",
+    "Products",
+    "photo-1495474472287-4d71bcdd2085",
+    "A gift they'll remember.",
+    "Help visitors find something thoughtful.",
+    "#72584e",
+  ],
+  [
+    "seasonal-collection",
+    "Seasonal Collection",
+    "Products",
+    "photo-1441986300917-64674bd600d8",
+    "A fresh season starts now.",
+    "Bring the latest collection forward.",
+    "#375047",
+  ],
+  [
+    "limited-edition",
+    "Limited Edition",
+    "Products",
+    "photo-1542291026-7eec264c27ff",
+    "Here for a moment.",
+    "Make exclusive pieces feel special.",
+    "#703a34",
+  ],
+  [
+    "weekend-offer",
+    "Weekend Offer",
+    "Promotions",
+    "photo-1441986300917-64674bd600d8",
+    "This weekend looks good.",
+    "A timely offer with a clear message.",
+    "#293e38",
+  ],
+  [
+    "free-shipping",
+    "Free Shipping",
+    "Promotions",
+    "photo-1495474472287-4d71bcdd2085",
+    "A little extra, on us.",
+    "Make a shipping offer easy to spot.",
+    "#5c4939",
+  ],
+  [
+    "flash-sale",
+    "Flash Sale",
+    "Promotions",
+    "photo-1542291026-7eec264c27ff",
+    "Don't miss this moment.",
+    "Give a short promotion the spotlight.",
+    "#9a302b",
+  ],
+  [
+    "members-only",
+    "Members Only",
+    "Promotions",
+    "photo-1600210492486-724fe5c67fb0",
+    "A little something for you.",
+    "Reward the people who keep coming back.",
+    "#344a45",
+  ],
+  [
+    "holiday-special",
+    "Holiday Special",
+    "Promotions",
+    "photo-1492684223066-81342ee5ff30",
+    "Celebrate the season.",
+    "Share a festive offer in style.",
+    "#493c4d",
+  ],
+  [
+    "bundle-offer",
+    "Bundle Offer",
+    "Promotions",
+    "photo-1541643600914-78b084683601",
+    "Better together.",
+    "Show the value of a curated bundle.",
+    "#786656",
+  ],
+  [
+    "grand-opening",
+    "Grand Opening",
+    "Promotions",
+    "photo-1414235077428-338989a2e8c0",
+    "The doors are open.",
+    "Invite everyone to see what is new.",
+    "#493b31",
+  ],
+  [
+    "clearance-event",
+    "Clearance Event",
+    "Promotions",
+    "photo-1441986300917-64674bd600d8",
+    "Last chance, great finds.",
+    "Give final pieces a fresh look.",
+    "#43534d",
+  ],
+  [
+    "preorder-launch",
+    "Preorder Launch",
+    "Promotions",
+    "photo-1541643600914-78b084683601",
+    "Be first in line.",
+    "Build anticipation before release day.",
+    "#5e4b51",
+  ],
+  [
+    "loyalty-reward",
+    "Loyalty Reward",
+    "Promotions",
+    "photo-1495474472287-4d71bcdd2085",
+    "Thanks for being here.",
+    "Make a customer reward feel personal.",
+    "#5e4d39",
+  ],
+  [
+    "architecture-gallery",
+    "Architecture Gallery",
+    "Galleries",
+    "photo-1600596542815-ffad4c1539a9",
+    "Spaces with a story.",
+    "Present the lines, light, and details.",
+    "#35433d",
+  ],
+  [
+    "food-gallery",
+    "Food Gallery",
+    "Galleries",
+    "photo-1414235077428-338989a2e8c0",
+    "A feast for the eyes.",
+    "Give each dish its own moment.",
+    "#55443a",
+  ],
+  [
+    "travel-diary",
+    "Travel Diary",
+    "Galleries",
+    "photo-1470770841072-f978cf4d019e",
+    "Places worth remembering.",
+    "Take visitors along for the journey.",
+    "#34504d",
+  ],
+  [
+    "art-gallery",
+    "Art Gallery",
+    "Galleries",
+    "photo-1518837695005-2083093ee35b",
+    "Look a little closer.",
+    "Let the work speak for itself.",
+    "#3e4d52",
+  ],
+  [
+    "interiors-gallery",
+    "Interiors Gallery",
+    "Galleries",
+    "photo-1600210492486-724fe5c67fb0",
+    "Rooms made to live in.",
+    "Show the character of every space.",
+    "#465448",
+  ],
+  [
+    "nature-gallery",
+    "Nature Gallery",
+    "Galleries",
+    "photo-1464822759023-fed622ff2c3b",
+    "The world, uninterrupted.",
+    "A spacious way to share outdoor scenes.",
+    "#344a4d",
+  ],
+  [
+    "wedding-gallery",
+    "Wedding Gallery",
+    "Galleries",
+    "photo-1492684223066-81342ee5ff30",
+    "Moments that stay with us.",
+    "Tell the story of a special day.",
+    "#554651",
+  ],
+  [
+    "team-gallery",
+    "Team Gallery",
+    "Galleries",
+    "photo-1441986300917-64674bd600d8",
+    "Meet the people behind it.",
+    "Give your team a warm introduction.",
+    "#4c5149",
+  ],
+  [
+    "lookbook",
+    "Lookbook",
+    "Galleries",
+    "photo-1441986300917-64674bd600d8",
+    "A collection in motion.",
+    "Turn a seasonal edit into a visual story.",
+    "#393c3a",
+  ],
+  [
+    "before-after",
+    "Before & After",
+    "Galleries",
+    "photo-1600596542815-ffad4c1539a9",
+    "See the transformation.",
+    "Present your work from start to finish.",
+    "#42514a",
+  ],
+  [
+    "brand-film",
+    "Brand Film Cover",
+    "Video",
+    "photo-1464822759023-fed622ff2c3b",
+    "This is our story.",
+    "Replace this cover image with your brand film.",
+    "#2b3d48",
+  ],
+  [
+    "product-demo",
+    "Product Demo Cover",
+    "Video",
+    "photo-1541643600914-78b084683601",
+    "See it in action.",
+    "Replace this cover image with a product demo.",
+    "#64544d",
+  ],
+  [
+    "founder-story",
+    "Founder Story Cover",
+    "Video",
+    "photo-1600210492486-724fe5c67fb0",
+    "Meet the maker.",
+    "Replace this cover image with your story.",
+    "#435147",
+  ],
+  [
+    "event-recap",
+    "Event Recap Cover",
+    "Video",
+    "photo-1492684223066-81342ee5ff30",
+    "What a night.",
+    "Replace this cover image with event footage.",
+    "#3d3551",
+  ],
+  [
+    "recipe-video",
+    "Recipe Video Cover",
+    "Video",
+    "photo-1414235077428-338989a2e8c0",
+    "Made to share.",
+    "Replace this cover image with a recipe video.",
+    "#493e34",
+  ],
+  [
+    "property-tour",
+    "Property Tour Cover",
+    "Video",
+    "photo-1600596542815-ffad4c1539a9",
+    "Step inside.",
+    "Replace this cover image with a property tour.",
+    "#35433d",
+  ],
+  [
+    "quote-carousel",
+    "Quote Carousel",
+    "Content",
+    "",
+    "Words worth sharing.",
+    "A clean layout for memorable quotes.",
+    "#e9e5dd",
+  ],
+  [
+    "press-highlights",
+    "Press Highlights",
+    "Content",
+    "",
+    "The word is out.",
+    "Collect mentions and milestones in one place.",
+    "#e6e8e5",
+  ],
+  [
+    "faq-highlights",
+    "FAQ Highlights",
+    "Content",
+    "",
+    "Good questions, clear answers.",
+    "Surface the details visitors ask about most.",
+    "#e6ebe8",
+  ],
+  [
+    "process-steps",
+    "Process Steps",
+    "Content",
+    "",
+    "How it all comes together.",
+    "Walk visitors through your process.",
+    "#e8e7e1",
+  ],
+  [
+    "announcement-strip",
+    "Announcement Strip",
+    "Content",
+    "",
+    "A quick note from us.",
+    "Share an update without losing the story.",
+    "#e7ece8",
+  ],
+  [
+    "case-studies",
+    "Case Studies",
+    "Content",
+    "",
+    "Work that speaks for itself.",
+    "Highlight the impact of your projects.",
+    "#e4e8e9",
+  ],
+] as const;
+export const starterTemplates: SliderTemplate[] = [
+  ...designs,
+  ...additionalDesigns,
+].map(([id, name, category, image, title, description, background], index) => {
+  const newDesign = index >= designs.length;
+  const variation = index - designs.length;
+  const multi =
+    (["Products", "Content"].includes(category) &&
+      id !== "testimonial-slider" &&
+      id !== "announcement-strip") ||
+    (newDesign && category === "Galleries" && variation % 2 === 0);
+  const isText = !image;
+  const positions = [
+    "center-left",
+    "center",
+    "center-right",
+    "bottom-left",
+    "bottom-center",
+  ] as const;
+  const position = newDesign
+    ? positions[variation % positions.length]
+    : "center-left";
+  const slide = slideSchema.parse({
+    _id: `${id}-slide`,
+    type: isText ? "text" : category === "Promotions" ? "promotion" : "image",
+    title,
+    description,
+    badge: category === "Promotions" ? "LIMITED TIME" : "THE NEW COLLECTION",
+    media: { url: image ? photo(image) : "", alt: name },
+    style: {
+      background,
+      overlay: image
+        ? newDesign
+          ? [0.18, 0.28, 0.36][variation % 3]
+          : 0.22
+        : 0,
+      heading: {
+        color: isText ? "#28372f" : "#ffffff",
+        fontSize: newDesign ? [36, 42, 50][variation % 3] : 40,
       },
-      primaryButton: { label: isText ? "" : "Explore collection", url: "" },
-    });
-    return {
-      _id: id,
-      name,
-      category,
-      thumbnail: image ? photo(image) : "",
-      settings: settingsSchema.parse({
-        effect: multi ? "multi-item" : "slide",
-        radius: 12,
-      }),
-      responsiveSettings: responsiveSchema.parse({
-        desktop: {
-          slidesPerView: multi ? 3 : 1,
-          height: id === "full-screen" ? 700 : 480,
-          gap: 24,
-        },
-        tablet: { slidesPerView: multi ? 2 : 1, height: 400, gap: 16 },
-        mobile: { height: 360, gap: 12 },
-      }),
-      slides: multi
-        ? [
-            slide,
-            { ...slide, _id: `${id}-slide-2`, title: "Made to be enjoyed." },
-            { ...slide, _id: `${id}-slide-3`, title: "Find your everyday." },
-          ]
-        : [slide],
-    };
-  },
-);
+      description: { color: isText ? "#526257" : "#ffffff" },
+      inheritTypography: !newDesign && !isText,
+      position,
+    },
+    primaryButton: { label: isText ? "" : "Explore collection", url: "" },
+  });
+  return {
+    _id: id,
+    name,
+    category,
+    thumbnail: image ? thumbnail(image) : "",
+    settings: settingsSchema.parse({
+      effect: multi
+        ? "multi-item"
+        : newDesign
+          ? ["slide", "fade", "crossfade"][variation % 3]
+          : "slide",
+      radius: newDesign ? [0, 8, 16, 24][variation % 4] : 12,
+    }),
+    responsiveSettings: responsiveSchema.parse({
+      desktop: {
+        slidesPerView: multi ? 3 : 1,
+        height:
+          id === "full-screen"
+            ? 700
+            : newDesign
+              ? [400, 480, 560][variation % 3]
+              : 480,
+        gap: 24,
+        alignment: position,
+      },
+      tablet: {
+        slidesPerView: multi ? 2 : 1,
+        height: 400,
+        gap: 16,
+        alignment: position,
+      },
+      mobile: { height: 360, gap: 12, alignment: position },
+    }),
+    slides: multi
+      ? [
+          slide,
+          { ...slide, _id: `${id}-slide-2`, title: "Made to be enjoyed." },
+          { ...slide, _id: `${id}-slide-3`, title: "Find your everyday." },
+        ]
+      : [slide],
+  };
+});
 export function templateToSlider(
   template: SliderTemplate,
   name = template.name,

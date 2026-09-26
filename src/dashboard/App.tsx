@@ -99,7 +99,7 @@ function Dashboard() {
                   <n.icon size={18} />
                   {n.name}
                   {n.name === "Sliders" && data.length > 0 && (
-                    <span className="ml-auto text-[10px] rounded bg-gray-100 px-1.5 py-.5">
+                    <span className="ml-auto text-[10px] font-semibold rounded-full bg-gray-100 px-2 py-0.5 tabular-nums">
                       {data.length}
                     </span>
                   )}
@@ -174,10 +174,10 @@ function Dashboard() {
                     retry={() => void sliders.refetch()}
                   />
                 )}
-                {sliders.isPending &&
+                {(sliders.isPending || sliders.isError) &&
                 page !== "Templates" &&
                 page !== "Settings" ? (
-                  <LoadingCards />
+                  sliders.isPending && <LoadingCards />
                 ) : page === "Overview" ? (
                   <Overview
                     sliders={data}
@@ -187,6 +187,10 @@ function Dashboard() {
                     onEdit={setEditing}
                     onTemplates={() => navigate("Templates")}
                     onSliders={() => navigate("Sliders")}
+                    onAnalytics={(s) => {
+                      navigate("Analytics");
+                      setAnalyticsId(s._id);
+                    }}
                   />
                 ) : page === "Sliders" ? (
                   <Sliders
@@ -205,7 +209,11 @@ function Dashboard() {
                 ) : page === "Media" ? (
                   <Media sliders={data} />
                 ) : page === "Analytics" ? (
-                  <Analytics sliders={data} sliderId={analyticsId} />
+                  <Analytics
+                    sliders={data}
+                    sliderId={analyticsId}
+                    onSliderChange={setAnalyticsId}
+                  />
                 ) : (
                   <Settings />
                 )}

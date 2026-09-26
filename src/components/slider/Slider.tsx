@@ -17,7 +17,7 @@ import {
   isSlideVisible,
   type VisibilityContext,
 } from "../../lib/slider/visibility";
-import { SliderSlideContent } from "./SliderSlide";
+import { SliderSlideContent, type LayerEditing } from "./SliderSlide";
 export interface SliderProps {
   slider: SliderModel;
   device?: Device;
@@ -25,6 +25,8 @@ export interface SliderProps {
   selectedSlide?: string;
   context?: Partial<VisibilityContext>;
   onEvent?: (event: AnalyticsEvent["event"], slideId?: string) => void;
+  /** Editor only: lets layers on the selected slide be selected and dragged. */
+  layerEditing?: LayerEditing;
 }
 export function Slider({
   slider,
@@ -33,6 +35,7 @@ export function Slider({
   selectedSlide,
   context,
   onEvent,
+  layerEditing,
 }: SliderProps) {
   const root = useRef<HTMLDivElement>(null);
   const [device, setDevice] = useState<Device>(forcedDevice ?? "desktop");
@@ -216,6 +219,9 @@ export function Slider({
                   onEvent={(event) => emit(event, slide._id)}
                   preview={preview}
                   reduced={reduced}
+                  editing={
+                    slide._id === selectedSlide ? layerEditing : undefined
+                  }
                 />
               </SwiperSlide>
             ))}

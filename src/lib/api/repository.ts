@@ -9,12 +9,13 @@ import {
 } from "../../schemas/slider";
 import { starterTemplates } from "../slider/templates";
 import { ApiError } from "./server";
-export async function listSliders() {
-  let result = await items
-    .query(C.sliders)
-    .descending("updatedAt")
-    .limit(100)
-    .find();
+export async function listSliders(
+  filters: { search?: string; status?: string } = {},
+) {
+  let query = items.query(C.sliders).descending("updatedAt").limit(100);
+  if (filters.search) query = query.contains("name", filters.search);
+  if (filters.status) query = query.eq("status", filters.status);
+  let result = await query.find();
   const all = [...result.items];
   while (result.hasNext()) {
     result = await result.next();

@@ -66,8 +66,11 @@ export function SliderEditor({
   const [leaving, setLeaving] = useState(false);
   const [deleting, setDeleting] = useState<Slide>();
   const [templateBusy, setTemplateBusy] = useState(false);
+  const [selectedLayer, setSelectedLayer] = useState<string>();
   const slide = draft.slides.find((s) => s._id === selected);
   const updateSlides = (slides: Slide[]) => change({ ...draft, slides });
+  const updateSlide = (next: Slide) =>
+    updateSlides(draft.slides.map((s) => (s._id === next._id ? next : s)));
   return (
     <div>
       <div className="bg-white border-b px-5 py-4 flex items-center gap-3 flex-wrap">
@@ -171,6 +174,7 @@ export function SliderEditor({
             selected={selected}
             onSelect={(id) => {
               setSelected(id);
+              setSelectedLayer(undefined);
               setPanel("slide");
             }}
             onChange={updateSlides}
@@ -197,6 +201,24 @@ export function SliderEditor({
               device={device}
               preview
               selectedSlide={selected}
+              layerEditing={
+                slide && slide.type !== "product"
+                  ? {
+                      selected: selectedLayer,
+                      onSelect: (id) => {
+                        setSelectedLayer(id);
+                        setPanel("slide");
+                      },
+                      onChange: (id, patch) =>
+                        updateSlide({
+                          ...slide,
+                          layers: slide.layers.map((l) =>
+                            l._id === id ? { ...l, ...patch } : l,
+                          ),
+                        }),
+                    }
+                  : undefined
+              }
             />
           </div>
           {!draft.slides.length && (
@@ -208,7 +230,8 @@ export function SliderEditor({
             </div>
           )}
           <p className="text-center text-[11px] text-gray-400 mt-5">
-            Changes appear here instantly. Publish when you’re ready.
+            Click text or a button to edit it, drag to move it. Changes appear
+            instantly — publish when you’re ready.
           </p>
           <div className="flex justify-center">
             <Button
@@ -272,11 +295,9 @@ export function SliderEditor({
             <SlideSettings
               key={slide._id}
               slide={slide}
-              onChange={(next) =>
-                updateSlides(
-                  draft.slides.map((s) => (s._id === next._id ? next : s)),
-                )
-              }
+              onChange={updateSlide}
+              selectedLayer={selectedLayer}
+              onSelectLayer={setSelectedLayer}
             />
           ) : (
             <p className="muted">

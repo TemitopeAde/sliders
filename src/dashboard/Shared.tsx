@@ -3,6 +3,39 @@ import { AlertCircle, Plus, Layers, ArrowUpRight } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Skeleton } from "../components/ui/skeleton";
 import { Badge } from "../components/ui/badge";
+import type { Slider } from "../schemas/slider";
+export function SliderThumb({
+  slider,
+  className = "w-14 h-10",
+}: {
+  slider: Slider;
+  className?: string;
+}) {
+  const media = slider.slides[0]?.media;
+  const src = slider.slides[0]?.type === "video" ? media?.poster : media?.url;
+  return (
+    <div
+      className={`${className} rounded-md bg-gray-100 overflow-hidden flex items-center justify-center shrink-0`}
+    >
+      {src ? (
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <Layers size={18} className="text-gray-400" />
+      )}
+    </div>
+  );
+}
+export const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 export function PageHeading({
   title,
   description,

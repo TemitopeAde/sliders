@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Plus,
   Search,
-  MoreHorizontal,
+  MoreVertical,
   LayoutGrid,
   List,
   Copy,
@@ -10,14 +10,18 @@ import {
   Eye,
   Trash2,
   BarChart3,
-  Power,
+  Rocket,
+  PowerOff,
+  Loader2,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Slider as SliderModel } from "../schemas/slider";
 import type { AnalyticsSummary } from "../lib/analytics/aggregate";
 import { api } from "../lib/api/client";
+import { useSliderSearch } from "../hooks/useSliders";
 import { Slider } from "../components/slider/Slider";
-import { Button } from "../components/ui/button";
+import { Button, buttonVariants } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import {
   Table,
@@ -51,7 +55,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "../components/ui/dialog";
-import { PageHeading, Empty, Status } from "./Shared";
+import { PageHeading, Empty, Status, SliderThumb, formatDate } from "./Shared";
 export function Sliders({
   sliders,
   analytics,
@@ -68,19 +72,23 @@ export function Sliders({
   onAnalytics: (s: SliderModel) => void;
 }) {
   const [search, setSearch] = useState("");
+  const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [grid, setGrid] = useState(false);
   const [deleting, setDeleting] = useState<SliderModel>();
   const [preview, setPreview] = useState<SliderModel>();
   const [busy, setBusy] = useState(false);
-  const filtered = sliders.filter(
-    (s) =>
-      s.name.toLowerCase().includes(search.toLowerCase()) &&
-      (filter === "all" || s.status === filter),
-  );
+  const [pending, setPending] = useState<string>();
+  useEffect(() => {
+    const t = setTimeout(() => setQuery(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+  const results = useSliderSearch(query, filter === "all" ? undefined : filter);
+  const filtered = results.data ?? [];
+  const searching = results.isFetching && (!!query || filter !== "all");
   async function action(slider: SliderModel, command: string) {
     try {
-      setBusy(true);
+      setPending(slider._id);
       const result = await api<SliderModel>(
         `sliders/${slider._id}/${command}`,
         "POST",
@@ -97,57 +105,62 @@ export function Sliders({
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Action failed");
     } finally {
-      setBusy(false);
+      setPending(undefined);
     }
   }
-  const menu = (s: SliderModel) => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label={`Actions for ${s.name}`}
-        >
-          <MoreHorizontal size={18} />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => onEdit(s)}>
-          <Pencil />
-          Edit / rename
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setPreview(s)}>
-          <Eye />
-          Preview
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          disabled={busy}
-          onClick={() => void action(s, "duplicate")}
-        >
-          <Copy />
-          Duplicate
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => onAnalytics(s)}>
-          <BarChart3 />
-          Analytics
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          disabled={busy}
-          onClick={() =>
-            void action(s, s.status === "published" ? "disable" : "publish")
-          }
-        >
-          <Power />
-          {s.status === "published" ? "Disable" : "Publish"}
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive" onClick={() => setDeleting(s)}>
-          <Trash2 />
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
+  const actions = (s: SliderModel) => {
+    const working = pending === s._id;
+    const published = s.status === "published";
+    return (
+      <div className="flex justify-end">
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
+            aria-label={`Actions for ${s.name}`}
+            disabled={working}
+          >
+            {working ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <MoreVertical size={16} />
+            )}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => onEdit(s)}>
+              <Pencil />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setPreview(s)}>
+              <Eye />
+              Preview
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => void action(s, published ? "disable" : "publish")}
+            >
+              {published ? <PowerOff /> : <Rocket />}
+              {published ? "Disable" : "Publish"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onAnalytics(s)}>
+              <BarChart3 />
+              Analytics
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => void action(s, "duplicate")}>
+              <Copy />
+              Duplicate
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={() => setDeleting(s)}
+            >
+              <Trash2 />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    );
+  };
   return (
     <>
       <PageHeading
@@ -166,10 +179,27 @@ export function Sliders({
             <Input
               aria-label="Search sliders"
               placeholder="Search sliders…"
-              className="pl-9 w-60"
+              className="pl-9 pr-9 w-60"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            {searching ? (
+              <Loader2
+                className="absolute right-3 top-3 text-gray-400 animate-spin"
+                size={15}
+                aria-label="Searching"
+              />
+            ) : (
+              search && (
+                <button
+                  className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600"
+                  aria-label="Clear search"
+                  onClick={() => setSearch("")}
+                >
+                  <X size={16} />
+                </button>
+              )
+            )}
           </div>
           <div className="flex gap-1">
             {["all", "published", "draft", "disabled"].map((s) => (
@@ -179,8 +209,14 @@ export function Sliders({
                 key={s}
                 className="capitalize"
                 onClick={() => setFilter(s)}
+                aria-pressed={filter === s}
               >
                 {s}
+                <span className="text-[11px] text-gray-400 tabular-nums">
+                  {s === "all"
+                    ? sliders.length
+                    : sliders.filter((v) => v.status === s).length}
+                </span>
               </Button>
             ))}
           </div>
@@ -190,6 +226,7 @@ export function Sliders({
               variant={grid ? "ghost" : "secondary"}
               size="icon"
               onClick={() => setGrid(false)}
+              aria-pressed={!grid}
             >
               <List size={17} />
             </Button>
@@ -198,61 +235,81 @@ export function Sliders({
               variant={grid ? "secondary" : "ghost"}
               size="icon"
               onClick={() => setGrid(true)}
+              aria-pressed={grid}
             >
               <LayoutGrid size={17} />
             </Button>
           </div>
         </div>
-        {!filtered.length ? (
-          <Empty
-            title={
-              sliders.length
-                ? "No matching sliders"
-                : "Create your first slider"
-            }
-            description={
-              sliders.length
-                ? "Try a different name or status filter."
-                : undefined
-            }
-            onCreate={onCreate}
-          />
+        {results.isError ? (
+          <div className="text-center py-12 px-6">
+            <p className="muted mb-5">{results.error.message}</p>
+            <Button variant="outline" onClick={() => void results.refetch()}>
+              Try again
+            </Button>
+          </div>
+        ) : results.isPending ? (
+          <div className="py-12 flex justify-center text-gray-400">
+            <Loader2 className="animate-spin" size={20} />
+          </div>
+        ) : !filtered.length ? (
+          sliders.length ? (
+            <div className="text-center py-12 px-6">
+              <h2 className="text-base font-semibold mb-2">
+                No matching sliders
+              </h2>
+              <p className="muted mb-5">
+                Try a different name or status filter.
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearch("");
+                  setQuery("");
+                  setFilter("all");
+                }}
+              >
+                Clear filters
+              </Button>
+            </div>
+          ) : (
+            <Empty onCreate={onCreate} />
+          )
         ) : grid ? (
           <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4 p-5">
             {filtered.map((s) => (
-              <div className="border rounded-lg p-4" key={s._id}>
+              <div
+                className="border rounded-lg p-3 transition-shadow hover:shadow-md"
+                key={s._id}
+              >
                 <button className="w-full text-left" onClick={() => onEdit(s)}>
-                  <div className="bg-gray-100 h-32 rounded-md mb-3 overflow-hidden">
-                    {s.slides[0]?.media.url &&
-                      s.slides[0]?.type !== "video" && (
-                        <img
-                          src={s.slides[0].media.url}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                  </div>
-                  <h3 className="text-sm font-semibold">{s.name}</h3>
+                  <SliderThumb slider={s} className="w-full h-36 mb-3" />
+                  <h3 className="text-sm font-semibold truncate mb-0.5">
+                    {s.name}
+                  </h3>
+                  <p className="text-xs text-gray-500 capitalize mb-0">
+                    {s.slides.length}{" "}
+                    {s.slides.length === 1 ? "slide" : "slides"} · {s.type} ·{" "}
+                    {formatDate(s.updatedAt)}
+                  </p>
                 </button>
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center mt-2">
                   <Status value={s.status} />
-                  {menu(s)}
+                  {actions(s)}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <Table>
+          <Table className={results.isFetching ? "opacity-60" : undefined}>
             <TableHeader>
               <TableRow>
-                <TableHead className="pl-5">Slider name</TableHead>
+                <TableHead className="pl-5">Slider</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Slides</TableHead>
-                <TableHead>Views</TableHead>
-                <TableHead>Clicks</TableHead>
+                <TableHead className="text-right">Views (30d)</TableHead>
+                <TableHead className="text-right">Clicks (30d)</TableHead>
                 <TableHead>Updated</TableHead>
-                <TableHead>
+                <TableHead className="sticky right-0 z-10 bg-white w-14">
                   <span className="sr-only">Actions</span>
                 </TableHead>
               </TableRow>
@@ -261,28 +318,50 @@ export function Sliders({
               {filtered.map((s) => {
                 const stats = analytics?.sliders.find((a) => a.name === s._id);
                 return (
-                  <TableRow key={s._id}>
-                    <TableCell className="pl-5">
+                  <TableRow
+                    key={s._id}
+                    className="group cursor-pointer"
+                    onClick={() => onEdit(s)}
+                  >
+                    <TableCell className="pl-5 py-3">
                       <button
-                        className="font-medium text-left hover:text-blue-600"
-                        onClick={() => onEdit(s)}
+                        className="flex items-center gap-3 text-left group/name"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEdit(s);
+                        }}
                       >
-                        {s.name}
+                        <SliderThumb slider={s} />
+                        <span>
+                          <span className="block font-medium group-hover/name:text-blue-600">
+                            {s.name}
+                          </span>
+                          <span className="block text-xs text-gray-500 capitalize">
+                            {s.slides.length}{" "}
+                            {s.slides.length === 1 ? "slide" : "slides"} ·{" "}
+                            {s.type}
+                          </span>
+                        </span>
                       </button>
                     </TableCell>
                     <TableCell>
                       <Status value={s.status} />
                     </TableCell>
-                    <TableCell className="capitalize text-gray-500">
-                      {s.type}
+                    <TableCell className="text-right tabular-nums">
+                      {(stats?.views ?? 0).toLocaleString()}
                     </TableCell>
-                    <TableCell>{s.slides.length}</TableCell>
-                    <TableCell>{stats?.views ?? 0}</TableCell>
-                    <TableCell>{stats?.clicks ?? 0}</TableCell>
-                    <TableCell className="text-xs text-gray-400">
-                      {new Date(s.updatedAt).toLocaleDateString()}
+                    <TableCell className="text-right tabular-nums">
+                      {(stats?.clicks ?? 0).toLocaleString()}
                     </TableCell>
-                    <TableCell>{menu(s)}</TableCell>
+                    <TableCell className="text-xs text-gray-500">
+                      {formatDate(s.updatedAt)}
+                    </TableCell>
+                    <TableCell
+                      className="sticky right-0 z-10 bg-white group-hover:bg-gray-50 pr-3 cursor-default"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {actions(s)}
+                    </TableCell>
                   </TableRow>
                 );
               })}

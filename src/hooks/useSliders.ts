@@ -1,9 +1,25 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { api } from "../lib/api/client";
 import type { Slider, SliderTemplate } from "../schemas/slider";
 import type { AnalyticsSummary } from "../lib/analytics/aggregate";
 export const useSliders = () =>
   useQuery({ queryKey: ["sliders"], queryFn: () => api<Slider[]>("sliders") });
+export const useSliderSearch = (search: string, status?: string) =>
+  useQuery({
+    queryKey: ["sliders", "search", search, status],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (search) params.set("search", search);
+      if (status) params.set("status", status);
+      const qs = params.toString();
+      return api<Slider[]>(qs ? `sliders?${qs}` : "sliders");
+    },
+    placeholderData: keepPreviousData,
+  });
 export const useTemplates = () =>
   useQuery({
     queryKey: ["templates"],

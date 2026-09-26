@@ -24,7 +24,18 @@ const blank = (
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });
-export const list = route(() => repo.listSliders());
+const listFilters = z.object({
+  search: z.string().trim().max(100).optional(),
+  status: z.enum(["draft", "published", "disabled"]).optional(),
+});
+export const list = route(({ url }) =>
+  repo.listSliders(
+    listFilters.parse({
+      search: url.searchParams.get("search") || undefined,
+      status: url.searchParams.get("status") || undefined,
+    }),
+  ),
+);
 export const create = route(async ({ request }) => {
   const data = createSliderSchema.parse(await body(request));
   let slider = blank(data.name, data.type);
