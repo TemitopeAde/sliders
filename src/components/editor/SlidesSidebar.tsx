@@ -27,7 +27,7 @@ import {
   Paintbrush,
 } from "lucide-react";
 import type { Slide } from "../../schemas/slider";
-import { Button } from "../ui/button";
+import { Button, buttonVariants } from "../ui/button";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -101,37 +101,37 @@ function SortableSlide({
           </p>
         </button>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="h-6 w-5"
-              aria-label={`Slide actions: ${slide.title}`}
-            >
-              ⋮
-            </Button>
+          <DropdownMenuTrigger
+            className={buttonVariants({
+              variant: "ghost",
+              className: "h-6 w-5",
+            })}
+            aria-label={`Slide actions: ${slide.title}`}
+          >
+            ⋮
           </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={onDuplicate}>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={onDuplicate}>
               <Copy />
               Duplicate
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onToggle}>
+            <DropdownMenuItem onSelect={onToggle}>
               <EyeOff />
               {slide.enabled ? "Disable" : "Enable"}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onMove(-1)}>
+            <DropdownMenuItem onSelect={() => onMove(-1)}>
               <ArrowUp />
               Move up
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onMove(1)}>
+            <DropdownMenuItem onSelect={() => onMove(1)}>
               <ArrowDown />
               Move down
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={onCopyStyle}>
+            <DropdownMenuItem onSelect={onCopyStyle}>
               <Paintbrush />
               Copy style to all slides
             </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive" onClick={onDelete}>
+            <DropdownMenuItem variant="destructive" onSelect={onDelete}>
               <Trash2 />
               Delete
             </DropdownMenuItem>

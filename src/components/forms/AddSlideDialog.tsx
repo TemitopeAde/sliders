@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { dashboard } from "@wix/dashboard";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Image, Video, ShoppingBag, Tag, Type } from "lucide-react";
+import { Image, Video, ShoppingBag, Tag, Type, ImagePlus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,16 +13,11 @@ import {
 } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import {
-  createSlide,
-  safeUrl,
-  slideSchema,
-  type Slide,
-} from "../../schemas/slider";
+import { createSlide, slideSchema, type Slide } from "../../schemas/slider";
+import { uploadSlideMedia } from "../../lib/wix/upload-slide-media";
 import { ProductPicker } from "./ProductPicker";
 const schema = z.object({
   title: z.string().trim().min(1, "Enter a title").max(160),
-  url: safeUrl.default(""),
   description: z.string().max(3000).default(""),
 });
 export function AddSlideDialog({
@@ -35,10 +31,75 @@ export function AddSlideDialog({
 }) {
   const [type, setType] = useState<Slide["type"]>("image");
   const [productId, setProductId] = useState("");
+  const [media, setMedia] = useState({ url: "", name: "" });
+  const [busyAction, setBusyAction] = useState<"upload" | "picker" | null>(
+    null,
+  );
+  const busy = busyAction !== null;
+  const [progress, setProgress] = useState(0);
+  const [mediaError, setMediaError] = useState("");
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { title: "", url: "", description: "" },
+    defaultValues: { title: "", description: "" },
   });
+  const changeOpen = (next: boolean) => {
+    if (!next && busy) return;
+    if (!next) {
+      form.reset();
+      setType("image");
+      setProductId("");
+      setMedia({ url: "", name: "" });
+      setMediaError("");
+      setProgress(0);
+    }
+    onOpenChange(next);
+  };
+  const selectFile = async (file?: File) => {
+    if (!file) return;
+    const expected = type === "video" ? "video/" : "image/";
+    if (!file.type.startsWith(expected)) {
+      setMediaError(
+        `Choose ${type === "video" ? "a video" : "an image"} file.`,
+      );
+      return;
+    }
+    setBusyAction("upload");
+    setMediaError("");
+    setProgress(0);
+    try {
+      const uploaded = await uploadSlideMedia(file, setProgress);
+      setMedia(uploaded);
+    } catch (error) {
+      console.error("Slide media upload failed", error);
+      setMediaError(
+        error instanceof Error ? error.message : "Media upload failed.",
+      );
+    } finally {
+      setBusyAction(null);
+    }
+  };
+  const selectFromWix = async () => {
+    setBusyAction("picker");
+    setMediaError("");
+    try {
+      const result = await dashboard.openMediaManager({
+        category: type === "video" ? "VIDEO" : "IMAGE",
+        multiSelect: false,
+      });
+      const file = result?.items[0];
+      if (file?.url)
+        setMedia({ url: file.url, name: file.displayName ?? "Wix media" });
+    } catch (error) {
+      console.error("Wix Media Manager selection failed", error);
+      setMediaError(
+        error instanceof Error
+          ? error.message
+          : "Could not open Wix Media Manager.",
+      );
+    } finally {
+      setBusyAction(null);
+    }
+  };
   const types = [
     { value: "image", icon: Image },
     { value: "video", icon: Video },
@@ -47,7 +108,7 @@ export function AddSlideDialog({
     { value: "text", icon: Type },
   ] as const;
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={changeOpen}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add a slide</DialogTitle>
@@ -59,7 +120,12 @@ export function AddSlideDialog({
           {types.map((t) => (
             <button
               key={t.value}
-              onClick={() => setType(t.value)}
+              disabled={busy}
+              onClick={() => {
+                setType(t.value);
+                setMedia({ url: "", name: "" });
+                setMediaError("");
+              }}
               className={`border rounded-lg py-3 flex flex-col gap-2 items-center text-xs capitalize ${type === t.value ? "border-blue-500 bg-blue-50 text-blue-600" : ""}`}
             >
               <t.icon size={20} />
@@ -70,6 +136,12 @@ export function AddSlideDialog({
         <form
           className="space-y-4"
           onSubmit={form.handleSubmit((data) => {
+            if ((type === "image" || type === "video") && !media.url) {
+              setMediaError(
+                `Choose ${type === "video" ? "a video" : "an image"} first.`,
+              );
+              return;
+            }
             if (type === "product" && !productId) {
               form.setError("title", { message: "Select a product first" });
               return;
@@ -78,13 +150,11 @@ export function AddSlideDialog({
               ...createSlide(type),
               title: data.title,
               description: data.description,
-              media: { url: data.url, alt: data.title },
+              media: { url: media.url, alt: media.name || data.title },
               ...(type === "product" ? { productId } : {}),
             });
             onAdd(slide);
-            form.reset();
-            setProductId("");
-            onOpenChange(false);
+            changeOpen(false);
           })}
         >
           <div>
@@ -107,21 +177,59 @@ export function AddSlideDialog({
               }}
             />
           ) : type !== "text" ? (
-            <div>
+            <div className="space-y-2">
               <label htmlFor="slide-media" className="field-label">
-                {type === "video" ? "Video" : "Image"} URL
+                {type === "video" ? "Video" : "Image"} file
               </label>
               <Input
                 id="slide-media"
-                placeholder="https://…"
-                {...form.register("url")}
+                type="file"
+                accept={type === "video" ? "video/*" : "image/*"}
+                disabled={busy}
+                onChange={(event) => {
+                  void selectFile(event.target.files?.[0]);
+                  event.target.value = "";
+                }}
               />
-              <p className="muted mt-1">
-                You can also choose from Wix Media Manager in the editor.
-              </p>
-              {form.formState.errors.url && (
-                <p className="text-red-600 text-xs">
-                  {form.formState.errors.url.message}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={busy}
+                onClick={() => void selectFromWix()}
+              >
+                <ImagePlus size={16} /> Choose from Wix Media Manager
+              </Button>
+              {busy && (
+                <div className="space-y-1" role="status">
+                  <span className="text-xs">
+                    {busyAction === "upload"
+                      ? `Uploading ${progress}%`
+                      : "Opening Wix Media Manager…"}
+                  </span>
+                  {busyAction === "upload" && (
+                    <progress className="w-full" max={100} value={progress} />
+                  )}
+                </div>
+              )}
+              {media.url && (
+                <div className="rounded-lg border p-2">
+                  {type === "video" ? (
+                    <video
+                      src={media.url}
+                      controls
+                      preload="metadata"
+                      className="w-full"
+                    />
+                  ) : (
+                    <img src={media.url} alt={media.name} className="w-full" />
+                  )}
+                  <p className="text-xs mt-1 truncate">{media.name}</p>
+                </div>
+              )}
+              {mediaError && (
+                <p role="alert" className="text-red-600 text-xs">
+                  {mediaError}
                 </p>
               )}
             </div>
@@ -130,11 +238,14 @@ export function AddSlideDialog({
             <Button
               variant="outline"
               type="button"
-              onClick={() => onOpenChange(false)}
+              disabled={busy}
+              onClick={() => changeOpen(false)}
             >
               Cancel
             </Button>
-            <Button disabled={form.formState.isSubmitting}>Add slide</Button>
+            <Button disabled={busy || form.formState.isSubmitting}>
+              Add slide
+            </Button>
           </div>
         </form>
       </DialogContent>

@@ -1,0 +1,2465 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>sliders. — Launch film</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,520;9..144,620&family=Inter:wght@420;500;560;650&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #20252f;
+        --muted: #6b7180;
+        --line: #e6e8ee;
+        --blue: #4263eb;
+        --blue-soft: #edf1ff;
+        --paper: #f7f8fa;
+        --stage: #101318;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: #07080a;
+        color: var(--ink);
+        font-family: "Avenir Next", Inter, "Segoe UI", sans-serif;
+      }
+      button, input { font: inherit; }
+      button { cursor: pointer; }
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+      #fit {
+        position: fixed;
+        inset: 0 0 52px;
+        overflow: hidden;
+      }
+      #stage {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 1920px;
+        height: 1080px;
+        margin-left: -960px;
+        margin-top: -540px;
+        background: var(--stage);
+        overflow: hidden;
+        transform: scale(var(--s, 1));
+        transform-origin: center center;
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        visibility: hidden;
+        overflow: hidden;
+      }
+      .ain {
+        opacity: 0;
+        animation: rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+        animation-play-state: paused;
+      }
+      .scene.on .ain { animation-play-state: running; }
+      .scene.settled .ain { opacity: 1; animation: none; }
+      body.paused .scene.on:not(.settled) .ain { animation-play-state: paused; }
+      @keyframes rise {
+        from { opacity: 0; transform: translateY(18px); }
+        to { opacity: 1; transform: none; }
+      }
+      @keyframes pop {
+        from { opacity: 0; transform: translateY(10px) scale(0.98); }
+        to { opacity: 1; transform: none; }
+      }
+      .display {
+        font-family: Fraunces, "Iowan Old Style", Palatino, Georgia, serif;
+        font-weight: 520;
+        letter-spacing: -0.03em;
+      }
+      .cap {
+        position: absolute;
+        left: 56px;
+        bottom: 42px;
+        z-index: 6;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 13px;
+        font-weight: 650;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      .cap b { color: var(--blue); font-weight: 650; }
+      .cap.dark { color: #8b93a3; }
+      .cap.light { color: rgba(255, 255, 255, 0.78); }
+      .ico { width: 18px; height: 18px; display: block; }
+      .ico.sm { width: 15px; height: 15px; }
+
+      /* Gate */
+      #gate {
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(900px 520px at 50% 42%, #1a2233, #0c0e12 70%);
+        color: white;
+        border: 0;
+        padding: 0;
+      }
+      #gate.hidden { display: none; }
+      .gate-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      .mark {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 22px;
+        border-radius: 18px;
+        background: var(--blue);
+        display: grid;
+        place-items: center;
+        box-shadow: 0 16px 40px rgba(66, 99, 235, 0.35);
+      }
+      .mark .ico { width: 34px; height: 34px; color: white; }
+      .gate-card h1 {
+        margin: 0;
+        font-size: 64px;
+        color: white;
+      }
+      .gate-card h1 i { color: var(--blue); font-style: normal; }
+      .gate-card p {
+        margin: 10px 0 0;
+        letter-spacing: 0.22em;
+        font-size: 12px;
+        color: #9aa3b5;
+      }
+      .play-pill {
+        margin: 34px auto 0;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: white;
+        color: var(--ink);
+        border-radius: 999px;
+        padding: 14px 22px 14px 16px;
+        font-weight: 650;
+        font-size: 15px;
+      }
+      .play-pill span {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--blue);
+        color: white;
+        display: grid;
+        place-items: center;
+      }
+      .gate-note {
+        display: block;
+        margin-top: 16px;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #7e8798;
+      }
+      #download {
+        position: fixed;
+        z-index: 40;
+        left: 50%;
+        bottom: 28px;
+        transform: translateX(-50%);
+        color: #d5dbe8;
+        font-size: 13px;
+        font-weight: 650;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        text-decoration: none;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        border-radius: 999px;
+        padding: 10px 16px;
+        background: rgba(12, 14, 18, 0.72);
+      }
+      #download:hover { color: white; border-color: rgba(255, 255, 255, 0.5); }
+      body.playing #download { display: none; }
+      body.ended #download { display: block; bottom: 68px; }
+
+      /* Chrome */
+      #chrome {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 52px;
+        padding: 0 16px;
+        background: #0c0e12;
+        color: white;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+      }
+      body.playing #chrome,
+      body.ended #chrome,
+      #chrome:focus-within {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      body.record #chrome { display: none; }
+      body.record #fit { inset: 0; }
+      body.record #gate { opacity: 0; }
+      body.record #download { display: none; }
+      #chrome button {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        border: 0;
+        background: transparent;
+        color: white;
+        display: grid;
+        place-items: center;
+      }
+      #chrome button:hover,
+      #chrome button:focus-visible { background: rgba(255, 255, 255, 0.08); }
+      #scrub {
+        flex: 1;
+        accent-color: var(--blue);
+        height: 4px;
+      }
+      #clock, #chapter {
+        font-variant-numeric: tabular-nums;
+        font-size: 12px;
+        color: #c5cad3;
+        white-space: nowrap;
+      }
+      #chapter { min-width: 108px; }
+
+      /* Cinematic */
+      .dark {
+        background:
+          radial-gradient(900px 480px at 70% 80%, rgba(66, 99, 235, 0.18), transparent 60%),
+          #101318;
+        color: white;
+      }
+      .open-lock {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        text-align: center;
+      }
+      .open-lock h1 {
+        margin: 18px 0 0;
+        font-size: 92px;
+        color: white;
+      }
+      .open-lock h1 i { font-style: normal; color: #6f8cff; }
+      .kicker {
+        margin: 14px 0 0;
+        letter-spacing: 0.28em;
+        font-size: 13px;
+        color: #9aa3b5;
+      }
+      .rule {
+        width: 0;
+        height: 1px;
+        margin: 22px auto 0;
+        background: rgba(255, 255, 255, 0.45);
+        animation: grow 1s 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+        animation-play-state: paused;
+      }
+      .scene.on .rule { animation-play-state: running; }
+      body.paused .scene.on .rule { animation-play-state: paused; }
+      @keyframes grow { to { width: 180px; } }
+
+      .promise {
+        position: absolute;
+        inset: 0;
+      }
+      .promise .slide {
+        position: absolute;
+        inset: 0;
+      }
+      .show > .slide {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        transition: opacity 0.55s ease;
+      }
+      .show > .slide.is-on { opacity: 1; }
+      .caret { opacity: 0; }
+      .caret.is-on { opacity: 1; }
+      .scene.dim::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(16, 19, 24, 0.5);
+        z-index: 2;
+      }
+      .promise-copy {
+        position: absolute;
+        left: 96px;
+        bottom: 120px;
+        z-index: 2;
+      }
+      .promise-copy .word {
+        display: block;
+        font-size: 104px;
+        line-height: 0.92;
+        color: white;
+        text-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+      }
+      .promise-sub {
+        margin-top: 22px;
+        font-size: 22px;
+        color: rgba(255, 255, 255, 0.86);
+        font-weight: 500;
+      }
+
+      /* Slides */
+      .slide {
+        position: relative;
+        overflow: hidden;
+        color: white;
+      }
+      .slide .copy {
+        position: absolute;
+        left: 48px;
+        bottom: 42px;
+        right: 48px;
+        z-index: 1;
+      }
+      .slide .eyebrow {
+        display: inline-block;
+        margin-bottom: 10px;
+        font-size: 12px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        font-weight: 650;
+      }
+      .slide h3 {
+        margin: 0;
+        font-family: Fraunces, Georgia, serif;
+        font-size: 52px;
+        font-weight: 520;
+        letter-spacing: -0.03em;
+        line-height: 1.02;
+        max-width: 14ch;
+      }
+      .slide .sub {
+        margin: 12px 0 0;
+        font-size: 16px;
+        max-width: 36ch;
+        color: rgba(255, 255, 255, 0.84);
+      }
+      .pill {
+        display: inline-flex;
+        margin-top: 18px;
+        background: white;
+        color: #243128;
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-size: 14px;
+        font-weight: 650;
+      }
+      .s-living {
+        background:
+          radial-gradient(420px 280px at 78% 30%, rgba(255, 255, 255, 0.28), transparent 60%),
+          linear-gradient(155deg, #e7efe4 0%, #8ea892 38%, #3d5244 100%);
+      }
+      .s-living .shape {
+        position: absolute;
+        right: 8%;
+        top: 16%;
+        width: 34%;
+        height: 58%;
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.05));
+        box-shadow: inset 0 0 0 10px rgba(255, 255, 255, 0.18);
+      }
+      .s-product {
+        background:
+          radial-gradient(300px 300px at 70% 45%, #f3e6d4, transparent 70%),
+          linear-gradient(160deg, #c9a27c, #7a5b40 70%);
+      }
+      .s-product .card {
+        position: absolute;
+        right: 12%;
+        top: 18%;
+        width: 240px;
+        height: 300px;
+        border-radius: 20px;
+        background: linear-gradient(180deg, #f7f1e8, #e4d3c0);
+        box-shadow: 0 24px 50px rgba(40, 24, 10, 0.25);
+      }
+      .s-product .card::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 42px;
+        width: 92px;
+        height: 140px;
+        transform: translateX(-50%);
+        border-radius: 46px 46px 16px 16px;
+        background: linear-gradient(180deg, #8d4b3a, #3e241d);
+      }
+      .s-video {
+        background:
+          linear-gradient(180deg, rgba(16, 19, 24, 0.05), rgba(16, 19, 24, 0.35)),
+          linear-gradient(165deg, #9eb8c2, #2c3e48 72%);
+      }
+      .s-video .peak {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 46%;
+        background: linear-gradient(180deg, transparent, #1d2c33 30%);
+        clip-path: polygon(0 60%, 18% 38%, 34% 70%, 52% 18%, 70% 58%, 86% 28%, 100% 62%, 100% 100%, 0 100%);
+      }
+      .play-badge {
+        position: absolute;
+        left: 50%;
+        top: 42%;
+        width: 74px;
+        height: 74px;
+        margin: -37px 0 0 -37px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.92);
+        color: #24343c;
+        display: grid;
+        place-items: center;
+      }
+
+      /* App chrome */
+      .studio {
+        background:
+          radial-gradient(900px 500px at 80% 0%, #e6ecff, transparent 55%),
+          #e8ebf1;
+      }
+      .app {
+        position: absolute;
+        left: 72px;
+        top: 64px;
+        right: 72px;
+        height: auto;
+        display: grid;
+        grid-template-columns: 248px 1fr;
+        background: white;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 30px 80px rgba(20, 24, 32, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+      }
+      .side {
+        border-right: 1px solid var(--line);
+        padding: 26px 16px 18px;
+        display: flex;
+        flex-direction: column;
+        background: white;
+      }
+      .brand {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 0 8px 22px;
+      }
+      .brand .mark {
+        width: 36px;
+        height: 36px;
+        margin: 0;
+        border-radius: 10px;
+        box-shadow: none;
+      }
+      .brand .mark .ico { width: 20px; height: 20px; }
+      .brand strong { display: block; font-size: 18px; letter-spacing: -0.04em; }
+      .brand strong i { color: var(--blue); font-style: normal; }
+      .brand small {
+        display: block;
+        margin-top: 2px;
+        color: #9aa0ab;
+        font-size: 8px;
+        letter-spacing: 0.14em;
+      }
+      .nav-label {
+        margin: 0 8px 8px;
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #9298a5;
+        font-weight: 650;
+      }
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        border: 0;
+        background: transparent;
+        color: #6c7280;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 14px;
+        font-weight: 560;
+        text-align: left;
+      }
+      .nav-item.is-on { background: var(--blue-soft); color: #3e5fdb; }
+      .nav-item .count {
+        margin-left: auto;
+        background: #f2f3f5;
+        color: #5c6573;
+        border-radius: 99px;
+        font-size: 10px;
+        padding: 2px 7px;
+      }
+      .tip {
+        margin-top: auto;
+        background: #f7f9fe;
+        border: 1px solid #e8edf9;
+        border-radius: 12px;
+        padding: 14px;
+      }
+      .tip strong { display: block; font-size: 12px; margin: 8px 0 4px; }
+      .tip p { margin: 0 0 10px; color: #6b7180; font-size: 11px; line-height: 1.45; }
+      .who {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 8px 0;
+        margin-top: 12px;
+        border-top: 1px solid var(--line);
+        color: #6b7180;
+        font-size: 12px;
+      }
+      .side .tip + .who { margin-top: 14px; }
+      .avatar, .who i {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: #e8edf8;
+        color: #627391;
+        display: grid;
+        place-items: center;
+        font-style: normal;
+        font-size: 11px;
+        font-weight: 650;
+      }
+      .dot-live {
+        margin-left: auto;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #12b981;
+      }
+      .work { min-width: 0; display: flex; flex-direction: column; background: var(--paper); }
+      .top {
+        height: 64px;
+        background: white;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 28px;
+        color: #9aa0ab;
+        font-size: 12px;
+      }
+      .crumb { display: flex; gap: 8px; align-items: center; }
+      .crumb em { color: var(--ink); font-style: normal; font-weight: 560; }
+      .top-right { display: flex; align-items: center; gap: 14px; }
+      .page { padding: 26px 28px 20px; min-height: 0; }
+      .page-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+      .page-head h2 {
+        margin: 0 0 4px;
+        font-size: 28px;
+        letter-spacing: -0.04em;
+        font-weight: 650;
+      }
+      .page-head p { margin: 0; color: var(--muted); font-size: 13px; }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        padding: 9px 12px;
+        font-size: 13px;
+        font-weight: 650;
+        background: white;
+        color: var(--ink);
+      }
+      .btn.primary { background: var(--blue); color: white; }
+      .btn.ghost { background: white; border-color: var(--line); }
+      .btn.pressed { transform: translateY(1px) scale(0.985); }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .stat {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px;
+      }
+      .stat .row { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
+      .stat .bubble {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+      }
+      .stat b {
+        display: block;
+        margin: 10px 0 2px;
+        font-size: 26px;
+        letter-spacing: -0.04em;
+      }
+      .stat small { color: #9aa0ab; font-size: 11px; }
+      .hero-band {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        min-height: 210px;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #e9efe9;
+        margin-bottom: 16px;
+      }
+      .hero-band .txt { padding: 28px; }
+      .hero-band .flag {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        color: #567361;
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-weight: 650;
+      }
+      .hero-band h3 {
+        margin: 10px 0;
+        font-size: 28px;
+        font-weight: 560;
+        letter-spacing: -0.03em;
+        color: #243f33;
+        line-height: 1.15;
+      }
+      .hero-band p { margin: 0 0 14px; color: #678071; font-size: 13px; max-width: 36ch; }
+      .mini-show { position: relative; min-height: 210px; }
+      .mini-show .slide { position: absolute; inset: 0; }
+      .mini-show .slide h3 { font-size: 28px; }
+      .mini-show .slide .copy { left: 24px; bottom: 20px; }
+      .cards-4, .cards-8 {
+        display: grid;
+        gap: 12px;
+      }
+      .cards-4 { grid-template-columns: repeat(4, 1fr); }
+      .tcard, .mcard {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .tcard.is-on { outline: 2px solid var(--blue); outline-offset: 0; }
+      .tart {
+        height: 112px;
+        position: relative;
+      }
+      .tart span, .tmeta {
+        position: absolute;
+        left: 10px;
+        top: 10px;
+        background: rgba(255, 255, 255, 0.92);
+        border-radius: 99px;
+        padding: 3px 8px;
+        font-size: 10px;
+        font-weight: 650;
+        color: var(--ink);
+      }
+      .tcard .body, .mcard .body { padding: 10px 12px 12px; }
+      .tcard strong, .mcard strong { display: block; font-size: 13px; }
+      .tcard em, .mcard em {
+        display: block;
+        margin-top: 3px;
+        font-style: normal;
+        color: #8b93a1;
+        font-size: 11px;
+      }
+      .chips { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+      .chip {
+        border: 1px solid var(--line);
+        background: white;
+        border-radius: 99px;
+        padding: 6px 10px;
+        font-size: 12px;
+        color: #5c6573;
+      }
+      .chip.is-on { background: var(--ink); color: white; border-color: var(--ink); }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+        font-size: 13px;
+      }
+      th {
+        text-align: left;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8b93a1;
+        font-weight: 650;
+        padding: 12px 14px;
+        background: #fafbfc;
+        border-bottom: 1px solid var(--line);
+      }
+      td { padding: 13px 14px; border-bottom: 1px solid #f0f2f6; }
+      tr:last-child td { border-bottom: 0; }
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        border-radius: 99px;
+        padding: 4px 8px;
+        font-size: 12px;
+        font-weight: 650;
+        background: #fff6e8;
+        color: #9a6412;
+      }
+      .status i {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #f5b942;
+        display: block;
+      }
+      .status.live { background: #e9f8f1; color: #0f7a52; }
+      .status.live i { background: #12b981; }
+      .search {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 10px;
+        color: #9aa0ab;
+        min-width: 220px;
+        font-size: 13px;
+      }
+
+      /* Create */
+      .dim .app { filter: saturate(0.92); }
+      .modal-wrap {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        z-index: 3;
+      }
+      .steps {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .step {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 255, 255, 0.14);
+        color: rgba(255, 255, 255, 0.75);
+        border-radius: 999px;
+        padding: 8px 12px 8px 8px;
+        font-size: 13px;
+        font-weight: 650;
+      }
+      .step b {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: rgba(255, 255, 255, 0.16);
+        font-size: 11px;
+      }
+      .step.is-on { background: white; color: var(--ink); }
+      .step.is-on b { background: var(--blue); color: white; }
+      .modal {
+        width: 640px;
+        background: white;
+        border-radius: 16px;
+        padding: 26px 26px 20px;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
+      }
+      .modal .mark { width: 44px; height: 44px; margin: 0 0 12px; border-radius: 12px; box-shadow: none; }
+      .modal h3 { margin: 0 0 6px; font-size: 22px; letter-spacing: -0.03em; }
+      .modal .lead { margin: 0 0 18px; color: var(--muted); font-size: 13px; }
+      .field { margin-bottom: 14px; }
+      .field label, .lbl {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        font-weight: 650;
+        color: #3c4350;
+      }
+      .input {
+        height: 40px;
+        border: 1px solid #e1e4ec;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        padding: 0 12px;
+        font-size: 14px;
+        background: white;
+      }
+      .input .caret {
+        width: 1px;
+        height: 16px;
+        background: var(--blue);
+        margin-left: 1px;
+        animation: blink 1s steps(1) infinite;
+      }
+      @keyframes blink { 50% { opacity: 0; } }
+      .types { display: flex; flex-wrap: wrap; gap: 6px; }
+      .types span {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 6px 8px;
+        font-size: 12px;
+        color: #5c6573;
+        text-transform: capitalize;
+      }
+      .types span.is-on { border-color: var(--blue); background: var(--blue-soft); color: #3256d6; }
+      .start {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 12px;
+      }
+      .start strong { font-size: 14px; }
+      .start p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+      .modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+      .toast {
+        position: absolute;
+        left: 50%;
+        bottom: 120px;
+        transform: translateX(-50%) translateY(8px);
+        background: #20252f;
+        color: white;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 13px;
+        opacity: 0;
+        z-index: 4;
+      }
+      .toast.is-on { opacity: 1; transform: translateX(-50%); }
+
+      /* Editor */
+      .editor {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: 270px 1fr 320px;
+        grid-template-rows: 72px 1fr;
+        background: white;
+      }
+      .ebar {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      .iconbtn {
+        width: 34px;
+        height: 34px;
+        border: 0;
+        background: transparent;
+        border-radius: 8px;
+        color: #3c4350;
+        display: grid;
+        place-items: center;
+      }
+      .nameblock { min-width: 220px; }
+      .nameblock strong { display: block; font-size: 16px; }
+      .nameblock small { color: #9aa0ab; font-size: 11px; }
+      .spacer { flex: 1; }
+      .seg {
+        display: flex;
+        background: #f2f3f5;
+        border-radius: 8px;
+        padding: 3px;
+      }
+      .seg span {
+        width: 32px;
+        height: 28px;
+        display: grid;
+        place-items: center;
+        border-radius: 6px;
+        color: #6c7280;
+      }
+      .seg span.is-on { background: white; color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06); }
+      .epane { border-right: 1px solid var(--line); padding: 16px; background: white; }
+      .epane h4, .rpane h4 {
+        margin: 0 0 10px;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8b93a1;
+      }
+      .thumb {
+        display: flex;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 8px;
+        margin-bottom: 8px;
+        background: white;
+        width: 100%;
+        text-align: left;
+        color: inherit;
+      }
+      .thumb.is-on { border-color: #8eabff; background: #f5f8ff; }
+      .thumb .ph {
+        width: 86px;
+        height: 54px;
+        border-radius: 6px;
+        position: relative;
+        overflow: hidden;
+        flex: none;
+      }
+      .thumb .ph .slide { position: absolute; inset: 0; }
+      .thumb .ph .slide h3, .thumb .ph .copy, .thumb .ph .pill, .thumb .ph .sub, .thumb .ph .eyebrow { display: none; }
+      .thumb p { margin: 8px 0 0; font-size: 12px; font-weight: 650; }
+      .thumb small { color: #9aa0ab; font-size: 10px; text-transform: capitalize; }
+      .num {
+        position: absolute;
+        left: 4px;
+        top: 4px;
+        background: rgba(255, 255, 255, 0.92);
+        border-radius: 4px;
+        font-size: 10px;
+        padding: 1px 4px;
+        color: var(--ink);
+        z-index: 1;
+      }
+      .canvas {
+        background-color: #f1f3f7;
+        background-image: radial-gradient(#d5dae4 0.8px, transparent 0.8px);
+        background-size: 16px 16px;
+        display: grid;
+        place-items: center;
+        padding: 28px;
+      }
+      .frame-slide {
+        width: min(100%, 860px);
+        aspect-ratio: 16 / 9;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 16px 40px rgba(20, 24, 32, 0.12);
+      }
+      .frame-slide .slide { position: absolute; inset: 0; opacity: 0; }
+      .frame-slide .slide.is-on { opacity: 1; }
+      .selbox {
+        position: absolute;
+        left: 44px;
+        bottom: 86px;
+        width: 430px;
+        height: 86px;
+        border: 1.5px solid #4263eb;
+        border-radius: 4px;
+        z-index: 2;
+        pointer-events: none;
+      }
+      .selbox i {
+        position: absolute;
+        width: 7px;
+        height: 7px;
+        background: white;
+        border: 1.5px solid #4263eb;
+        border-radius: 1px;
+      }
+      .selbox i:nth-child(1) { left: -4px; top: -4px; }
+      .selbox i:nth-child(2) { right: -4px; top: -4px; }
+      .selbox i:nth-child(3) { left: -4px; bottom: -4px; }
+      .selbox i:nth-child(4) { right: -4px; bottom: -4px; }
+      .rpane { padding: 14px 14px 18px; background: white; overflow: hidden; }
+      .tabs-mini { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 14px; }
+      .tabs-mini span {
+        font-size: 11px;
+        padding: 5px 7px;
+        border-radius: 7px;
+        color: #667085;
+        background: #f4f6f8;
+      }
+      .tabs-mini span.is-on { background: var(--blue-soft); color: #3256d6; }
+      .layer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px;
+        margin-bottom: 6px;
+        font-size: 12px;
+      }
+      .layer.is-on { border-color: #8eabff; background: #f5f8ff; }
+      .layer .kind {
+        margin-left: auto;
+        color: #9aa0ab;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      /* Widget / Wix editor */
+      .wix {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        grid-template-columns: 68px 1fr 360px;
+        background: #eceff3;
+      }
+      .rail {
+        background: white;
+        border-right: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 14px 0;
+        gap: 8px;
+      }
+      .rail .sq {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        color: #667085;
+      }
+      .rail .sq.is-on { background: var(--blue-soft); color: var(--blue); }
+      .site {
+        display: grid;
+        place-items: center;
+        padding: 28px;
+      }
+      .page-sheet {
+        width: min(100%, 980px);
+        height: 92%;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 18px 50px rgba(20, 24, 32, 0.12);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .site-nav {
+        height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 22px;
+        border-bottom: 1px solid #f0f2f5;
+        font-size: 13px;
+      }
+      .site-nav strong { letter-spacing: 0.14em; font-size: 12px; }
+      .site-nav nav { display: flex; gap: 16px; color: #6b7180; }
+      .widget-slot {
+        position: relative;
+        height: 390px;
+        margin: 18px;
+        border-radius: 12px;
+        overflow: hidden;
+        outline: 2px solid #4263eb;
+        outline-offset: 3px;
+      }
+      .widget-slot .slide { position: absolute; inset: 0; opacity: 0; }
+      .widget-slot .slide.is-on { opacity: 1; }
+      .widget-slot .slide h3 { font-size: 42px; }
+      .arrows {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px;
+        z-index: 2;
+        pointer-events: none;
+      }
+      .arrows i {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.92);
+        color: #20252f;
+        display: grid;
+        place-items: center;
+        font-style: normal;
+        font-weight: 650;
+      }
+      .dots {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 16px;
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        z-index: 2;
+      }
+      .dots b {
+        width: 7px;
+        height: 7px;
+        border-radius: 99px;
+        background: rgba(255, 255, 255, 0.55);
+        display: block;
+      }
+      .dots b.is-on { width: 18px; background: white; }
+      .below {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        padding: 0 18px;
+      }
+      .pcard {
+        height: 92px;
+        border-radius: 10px;
+        background: #f4f5f7;
+        border: 1px solid #eee;
+      }
+      .panel {
+        background: white;
+        border-left: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+      }
+      .panel .hd { padding: 16px 16px 8px; }
+      .panel .hd .lbl { margin-bottom: 6px; }
+      .ptabs {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border-bottom: 1px solid var(--line);
+      }
+      .ptabs span {
+        text-align: center;
+        font-size: 12px;
+        padding: 10px 0;
+        color: #667085;
+        border-bottom: 2px solid transparent;
+      }
+      .ptabs span.is-on { color: var(--blue); border-bottom-color: var(--blue); font-weight: 650; }
+      .pbody { padding: 8px 16px 16px; }
+      .pbody h4 {
+        margin: 12px 0 8px;
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #8b93a1;
+      }
+      .toggle {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        font-size: 13px;
+      }
+      .sw {
+        width: 36px;
+        height: 22px;
+        border-radius: 99px;
+        background: #d7dbe3;
+        position: relative;
+        flex: none;
+      }
+      .sw::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: white;
+        transition: 0.2s;
+      }
+      .sw.is-on { background: var(--blue); }
+      .sw.is-on::after { left: 16px; }
+      .range {
+        height: 4px;
+        background: #e6e8ee;
+        border-radius: 99px;
+        margin: 8px 0 4px;
+        position: relative;
+      }
+      .range i {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 42%;
+        background: var(--blue);
+        border-radius: 99px;
+      }
+      .range.is-on i { width: 68%; }
+      .range b {
+        position: absolute;
+        top: 50%;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: white;
+        border: 2px solid var(--blue);
+        transform: translate(-50%, -50%);
+        left: 42%;
+      }
+      .range.is-on b { left: 68%; }
+      .choice2 { display: flex; gap: 6px; }
+      .choice2 span {
+        flex: 1;
+        text-align: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 7px 0;
+        font-size: 12px;
+      }
+      .choice2 span.is-on { border-color: var(--blue); background: var(--blue-soft); color: #3256d6; }
+      .swatch {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 13px;
+      }
+      .swatch i {
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+        display: block;
+      }
+
+      /* Analytics */
+      .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+      .chart {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px 16px 10px;
+        height: 250px;
+        display: flex;
+        flex-direction: column;
+      }
+      .chart .bars {
+        flex: 1;
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+      }
+      .bar {
+        flex: 1;
+        background: linear-gradient(180deg, #6d8cff, #4263eb);
+        border-radius: 6px 6px 2px 2px;
+        transform-origin: bottom center;
+        transform: scaleY(0);
+        height: 100%;
+      }
+      .filters { display: flex; gap: 8px; align-items: center; }
+      .segbtn {
+        display: flex;
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 3px;
+      }
+      .segbtn span { padding: 6px 8px; font-size: 12px; border-radius: 6px; color: #667; }
+      .segbtn span.is-on { background: #f2f3f5; color: var(--ink); font-weight: 650; }
+
+      /* Workspace split */
+      .split {
+        position: absolute;
+        left: 64px;
+        right: 64px;
+        top: 70px;
+        bottom: 100px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+      }
+      .pane {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 24px 60px rgba(20, 24, 32, 0.12);
+        padding: 26px;
+        border: 1px solid rgba(255, 255, 255, 0.8);
+      }
+      .pane h3 { margin: 0 0 6px; font-size: 26px; letter-spacing: -0.03em; }
+      .pane .lead { margin: 0 0 16px; color: var(--muted); font-size: 13px; }
+      .media-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+      .media-grid .tile { height: 120px; border-radius: 10px; position: relative; overflow: hidden; }
+      .media-grid .tile span {
+        position: absolute;
+        left: 8px;
+        bottom: 8px;
+        background: rgba(255, 255, 255, 0.92);
+        border-radius: 99px;
+        font-size: 10px;
+        padding: 3px 7px;
+        font-weight: 650;
+      }
+      .note {
+        display: flex;
+        gap: 10px;
+        background: #f6f7f9;
+        border-radius: 10px;
+        padding: 12px;
+        color: #6b7180;
+        font-size: 12px;
+        line-height: 1.45;
+        margin: 8px 0 16px;
+      }
+
+      /* End */
+      .end-lock {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        color: white;
+      }
+      .end-lock h2 {
+        margin: 18px 0 0;
+        font-size: 76px;
+      }
+      .end-lock .line {
+        margin-top: 14px;
+        font-size: 22px;
+        color: rgba(255, 255, 255, 0.82);
+      }
+      .pills {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin-top: 26px;
+      }
+      .pills span {
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 99px;
+        padding: 8px 12px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.82);
+      }
+      .cursor {
+        position: absolute;
+        z-index: 7;
+        width: 22px;
+        height: 22px;
+        margin-left: -2px;
+        pointer-events: none;
+        filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.25));
+        opacity: 0;
+      }
+      .cursor.show { opacity: 1; }
+      .cursor.click { transform: scale(0.9); }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div id="live" class="sr" aria-live="polite"></div>
+    <div id="fit">
+      <div id="stage">
+        <svg width="0" height="0" aria-hidden="true" style="position: absolute">
+          <symbol id="i-layers" viewBox="0 0 24 24">
+            <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" />
+            <path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" />
+            <path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" />
+          </symbol>
+          <symbol id="i-dash" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="7" height="9" rx="1" /><rect x="14" y="3" width="7" height="5" rx="1" />
+            <rect x="14" y="12" width="7" height="9" rx="1" /><rect x="3" y="16" width="7" height="5" rx="1" />
+          </symbol>
+          <symbol id="i-panels" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
+          </symbol>
+          <symbol id="i-template" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
+          </symbol>
+          <symbol id="i-image" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="1.6" />
+            <path d="m21 15-5-5L5 21" />
+          </symbol>
+          <symbol id="i-chart" viewBox="0 0 24 24">
+            <path d="M3 3v18h18" /><path d="M7 16v-3M12 16V8M17 16v-5" />
+          </symbol>
+          <symbol id="i-settings" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6" />
+          </symbol>
+          <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+          <symbol id="i-eye" viewBox="0 0 24 24">
+            <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" />
+          </symbol>
+          <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></symbol>
+          <symbol id="i-click" viewBox="0 0 24 24">
+            <path d="M9 11V5a2 2 0 0 1 4 0v6" /><path d="M13 10V7a2 2 0 1 1 4 0v6" />
+            <path d="M9 10V8a2 2 0 1 0-4 0v7c0 4 3 7 7 7s7-3 7-7v-3a2 2 0 1 0-4 0" />
+          </symbol>
+          <symbol id="i-trend" viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8" /><path d="M14 7h7v7" /></symbol>
+          <symbol id="i-radio" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="2" /><path d="M5 12a7 7 0 0 1 14 0" /><path d="M8.5 12a3.5 3.5 0 0 1 7 0" />
+          </symbol>
+          <symbol id="i-monitor" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" />
+          </symbol>
+          <symbol id="i-tablet" viewBox="0 0 24 24">
+            <rect x="5" y="2" width="14" height="20" rx="2" /><path d="M12 18h.01" />
+          </symbol>
+          <symbol id="i-phone" viewBox="0 0 24 24">
+            <rect x="7" y="2" width="10" height="20" rx="2" /><path d="M11 18h2" />
+          </symbol>
+          <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 0 12H9" /></symbol>
+          <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5" /><path d="M20 9H10a6 6 0 0 0 0 12h5" /></symbol>
+          <symbol id="i-save" viewBox="0 0 24 24">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+            <path d="M17 21v-8H7v8M7 3v5h8" />
+          </symbol>
+          <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5" /><path d="M4 20h16" /></symbol>
+          <symbol id="i-search" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" />
+          </symbol>
+          <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6" /></symbol>
+          <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" /></symbol>
+          <symbol id="i-left" viewBox="0 0 24 24"><path d="M15 6 9 12l6 6" /></symbol>
+          <symbol id="i-spark" viewBox="0 0 24 24">
+            <path d="M12 3l1.6 5.2L19 10l-5.4 1.8L12 17l-1.6-5.2L5 10l5.4-1.8z" />
+          </symbol>
+        </svg>
+
+        <section class="scene dark" id="open" data-label="sliders. Make every slide count.">
+          <div class="open-lock">
+            <div>
+              <div class="mark ain" style="animation-delay: 0.15s"><svg class="ico"><use href="#i-layers" /></svg></div>
+              <h1 class="display ain" style="animation-delay: 0.35s">sliders<i>.</i></h1>
+              <p class="kicker ain" style="animation-delay: 0.7s">Make every slide count</p>
+              <div class="rule"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="scene" id="promise" data-label="Image, product, and video. One widget for the whole story.">
+          <div class="promise show" data-every="1.55">
+            <div class="slide s-living"><div class="shape"></div></div>
+            <div class="slide s-product"><div class="card"></div></div>
+            <div class="slide s-video"><div class="peak"></div><div class="play-badge"><svg class="ico"><use href="#i-play" /></svg></div></div>
+          </div>
+          <div class="promise-copy">
+            <span class="display word ain" style="animation-delay: 0.1s">Image.</span>
+            <span class="display word ain" style="animation-delay: 0.28s">Product.</span>
+            <span class="display word ain" style="animation-delay: 0.46s">Video.</span>
+            <div class="promise-sub ain" style="animation-delay: 0.85s">One widget for the whole story.</div>
+          </div>
+          <div class="cap light ain"><b>01</b> Every format</div>
+        </section>
+
+        <section class="scene studio" id="overview" data-label="Dashboard. Let your content take center stage.">
+          <div class="app ain">
+            <aside class="side" data-nav="Overview" data-tip="1"></aside>
+            <div class="work">
+              <header class="top">
+                <div class="crumb">Workspace <span>›</span> <em>Overview</em></div>
+                <div class="top-right"><span>Product, Image &amp; Video Slider</span><i class="avatar">W</i></div>
+              </header>
+              <div class="page">
+                <div class="page-head">
+                  <div>
+                    <h2>Let your content take center stage.</h2>
+                    <p>Create, manage, and fine-tune the sliders that bring your site to life.</p>
+                  </div>
+                  <button class="btn primary"><svg class="ico sm"><use href="#i-plus" /></svg> Create slider</button>
+                </div>
+                <div class="stats">
+                  <article class="stat"><div class="row">Total sliders <span class="bubble" style="background:#eef3ff;color:#4263eb"><svg class="ico sm"><use href="#i-layers" /></svg></span></div><b data-count="12" data-count-delay="0.2">0</b><small>Your creative collection</small></article>
+                  <article class="stat"><div class="row">Active sliders <span class="bubble" style="background:#e8f8ef;color:#0f9f6e"><svg class="ico sm"><use href="#i-radio" /></svg></span></div><b data-count="8" data-count-delay="0.28">0</b><small>Published on your site</small></article>
+                  <article class="stat"><div class="row">Impressions <span class="bubble" style="background:#f3eefe;color:#7c5cbf"><svg class="ico sm"><use href="#i-eye" /></svg></span></div><b data-count="24860" data-count-delay="0.36">0</b><small>Last 30 days</small></article>
+                  <article class="stat"><div class="row">Total clicks <span class="bubble" style="background:#fff1e8;color:#e07a2f"><svg class="ico sm"><use href="#i-click" /></svg></span></div><b data-count="1204" data-count-delay="0.44">0</b><small>Last 30 days</small></article>
+                  <article class="stat"><div class="row">Video plays <span class="bubble" style="background:#fdecef;color:#d4536a"><svg class="ico sm"><use href="#i-play" /></svg></span></div><b data-count="860" data-count-delay="0.52">0</b><small>Last 30 days</small></article>
+                  <article class="stat"><div class="row">Click-through <span class="bubble" style="background:#e7f8fb;color:#0e8ea3"><svg class="ico sm"><use href="#i-trend" /></svg></span></div><b data-count="4.8" data-count-fixed="1" data-count-suffix="%" data-count-delay="0.6">0%</b><small>Clicks / impressions</small></article>
+                </div>
+                <div class="hero-band">
+                  <div class="txt">
+                    <div class="flag"><svg class="ico sm"><use href="#i-spark" /></svg> Less effort. More impact.</div>
+                    <h3>A beautiful slider is<br />just a few clicks away.</h3>
+                    <p>Start with a thoughtfully crafted template and make it yours. No code.</p>
+                    <button class="btn ghost">Explore templates <svg class="ico sm"><use href="#i-arrow" /></svg></button>
+                  </div>
+                  <div class="mini-show show" data-every="2.2">
+                    <div class="slide s-living"><div class="shape"></div><div class="copy"><h3>Make room for beautiful living.</h3></div></div>
+                    <div class="slide s-product"><div class="card"></div><div class="copy"><h3>Your next everyday favorite.</h3></div></div>
+                    <div class="slide s-video"><div class="peak"></div><div class="copy"><h3>Go a little further.</h3></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="cap dark ain" style="animation-delay: 0.3s"><b>02</b> Dashboard</div>
+        </section>
+
+        <section class="scene studio" id="templates" data-label="Templates. Hero, products, video, galleries, and more.">
+          <div class="app ain">
+            <aside class="side" data-nav="Templates"></aside>
+            <div class="work">
+              <header class="top"><div class="crumb">Workspace <span>›</span> <em>Templates</em></div><div class="top-right"><span>Product, Image &amp; Video Slider</span><i class="avatar">W</i></div></header>
+              <div class="page">
+                <div class="page-head">
+                  <div>
+                    <h2>Start from a look you love.</h2>
+                    <p>Hero banners, product carousels, video, testimonials, and galleries.</p>
+                  </div>
+                </div>
+                <div class="chips">
+                  <span class="chip is-on">All</span><span class="chip">Hero</span><span class="chip">Products</span><span class="chip">Galleries</span><span class="chip">Video</span><span class="chip">Promotions</span><span class="chip">Content</span>
+                </div>
+                <div class="cards-4">
+                  <article class="tcard is-on ain" style="animation-delay:.05s"><div class="tart s-living"><span>Hero</span></div><div class="body"><strong>Hero Banner</strong><em>3 slides · Homepage</em></div></article>
+                  <article class="tcard ain" style="animation-delay:.1s"><div class="tart s-product"><span>Products</span></div><div class="body"><strong>Product Carousel</strong><em>Store collection</em></div></article>
+                  <article class="tcard ain" style="animation-delay:.15s"><div class="tart" style="background:linear-gradient(145deg,#d9cbb8,#8d7b68)"><span>Products</span></div><div class="body"><strong>Featured Products</strong><em>Considered essentials</em></div></article>
+                  <article class="tcard ain" style="animation-delay:.2s"><div class="tart" style="background:linear-gradient(145deg,#e07a72,#8d2f2a)"><span>Products</span></div><div class="body"><strong>Best Sellers</strong><em>Most-loved pieces</em></div></article>
+                  <article class="tcard ain" style="animation-delay:.25s"><div class="tart s-video"><span>Video</span></div><div class="body"><strong>Video Showcase</strong><em>Full-bleed story</em></div></article>
+                  <article class="tcard ain" style="animation-delay:.3s"><div class="tart" style="background:linear-gradient(160deg,#7ea3a8,#2f4a50)"><span>Galleries</span></div><div class="body"><strong>Portfolio</strong><em>Selected work</em></div></article>
+                  <article class="tcard ain" style="animation-delay:.35s"><div class="tart" style="background:#e7e4dd"><span style="color:#20252f">Content</span></div><div class="body"><strong>Testimonial Slider</strong><em>Customer words</em></div></article>
+                  <article class="tcard ain" style="animation-delay:.4s"><div class="tart" style="background:linear-gradient(160deg,#6d8b84,#243832)"><span>Hero</span></div><div class="body"><strong>Full-Screen Slider</strong><em>Edge to edge</em></div></article>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="cap dark ain"><b>03</b> Templates</div>
+        </section>
+
+        <section class="scene studio" id="library" data-label="Sliders library. Search, status, and performance in one list.">
+          <div class="app ain">
+            <aside class="side" data-nav="Sliders"></aside>
+            <div class="work">
+              <header class="top"><div class="crumb">Workspace <span>›</span> <em>Sliders</em></div><div class="top-right"><span>Product, Image &amp; Video Slider</span><i class="avatar">W</i></div></header>
+              <div class="page">
+                <div class="page-head">
+                  <div>
+                    <h2>Everything you’ve made.</h2>
+                    <p>Open a slider to edit, publish, or see how it performs.</p>
+                  </div>
+                  <div style="display:flex;gap:8px;align-items:center">
+                    <div class="search"><svg class="ico sm"><use href="#i-search" /></svg> Search sliders</div>
+                    <button class="btn primary"><svg class="ico sm"><use href="#i-plus" /></svg> Create slider</button>
+                  </div>
+                </div>
+                <table>
+                  <thead><tr><th>Name</th><th>Status</th><th>Slides</th><th>Updated</th><th>Views</th></tr></thead>
+                  <tbody>
+                    <tr><td><strong>Summer collection</strong></td><td><span class="status live"><i></i> Published</span></td><td>3</td><td>Today</td><td>8,420</td></tr>
+                    <tr><td><strong>Homepage hero</strong></td><td><span class="status live"><i></i> Published</span></td><td>4</td><td>Yesterday</td><td>6,110</td></tr>
+                    <tr><td><strong>Lookbook</strong></td><td><span class="status"><i></i> Draft</span></td><td>6</td><td>Monday</td><td>—</td></tr>
+                    <tr><td><strong>Best sellers</strong></td><td><span class="status live"><i></i> Published</span></td><td>8</td><td>Sunday</td><td>3,204</td></tr>
+                    <tr><td><strong>Studio tour</strong></td><td><span class="status live"><i></i> Published</span></td><td>1 video</td><td>Last week</td><td>1,086</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div class="cap dark ain"><b>04</b> Your sliders</div>
+        </section>
+
+        <section class="scene studio dim" id="create" data-label="Create a slider in four steps. Name, type, template, create.">
+          <div class="app">
+            <aside class="side" data-nav="Sliders"></aside>
+            <div class="work">
+              <header class="top"><div class="crumb">Workspace <span>›</span> <em>Sliders</em></div><div class="top-right"><span>Product, Image &amp; Video Slider</span><i class="avatar">W</i></div></header>
+              <div class="page">
+                <div class="page-head"><div><h2>Everything you’ve made.</h2><p>Open a slider to edit, publish, or see how it performs.</p></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-wrap">
+            <div>
+              <div class="steps" data-stepper="0.35,1.7,3.5,5.6">
+                <div class="step" data-step="0"><b>1</b> Name</div>
+                <div class="step" data-step="1"><b>2</b> Type</div>
+                <div class="step" data-step="2"><b>3</b> Template</div>
+                <div class="step" data-step="3"><b>4</b> Create</div>
+              </div>
+              <div class="modal ain">
+                <div class="mark"><svg class="ico"><use href="#i-layers" /></svg></div>
+                <h3>Create a slider</h3>
+                <p class="lead">Start with a blank canvas or make a template your own.</p>
+                <div class="field">
+                  <label>Slider name</label>
+                  <div class="input"><span data-type="Summer collection" data-type-start="0.45" data-type-dur="1.15"></span><i class="caret" data-on-at="0.45" data-off-at="1.7"></i></div>
+                </div>
+                <div class="field">
+                  <span class="lbl">Slider type</span>
+                  <div class="types" data-pick-at="1.7">
+                    <span>image</span><span>video</span><span>product</span><span>promotion</span><span>mixed</span><span>hero</span><span>portfolio</span><span>logo</span><span>announcement</span>
+                  </div>
+                </div>
+                <div class="field">
+                  <span class="lbl">Starting point</span>
+                  <div class="start">
+                    <div>
+                      <strong data-switch-at="3.5" data-switch-a="Blank slider" data-switch-b="Hero Banner">Blank slider</strong>
+                      <p data-switch-at="3.5" data-switch-a="Build your slides from scratch" data-switch-b="Hero · 3 slides">Build your slides from scratch</p>
+                    </div>
+                    <button class="btn ghost"><svg class="ico sm"><use href="#i-template" /></svg> <span data-switch-at="3.5" data-switch-a="Choose template" data-switch-b="Change template">Choose template</span></button>
+                  </div>
+                </div>
+                <div class="actions">
+                  <button class="btn ghost">Cancel</button>
+                  <button class="btn primary" data-on-at="5.6" data-off-at="5.95" data-on-class="pressed"><svg class="ico sm"><use href="#i-check" /></svg> Create slider</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="toast" data-on-at="6.15">Slider created</div>
+          <div class="cap light ain"><b>05</b> Four steps</div>
+        </section>
+
+        <section class="scene" id="editor" data-label="Editor. Slides, layers, responsive preview, save, and publish.">
+          <div class="editor">
+            <div class="ebar">
+              <button class="iconbtn" aria-hidden="true"><svg class="ico sm"><use href="#i-left" /></svg></button>
+              <div class="nameblock">
+                <strong>Summer collection</strong>
+                <small data-switch-at="7.4" data-switch-a="All changes saved" data-switch-b="Published to your site">All changes saved</small>
+              </div>
+              <span class="status" data-on-at="7.4" data-on-class="live"><i></i><span data-switch-at="7.4" data-switch-a="Draft" data-switch-b="Published">Draft</span></span>
+              <div class="spacer"></div>
+              <div class="seg"><span class="is-on"><svg class="ico sm"><use href="#i-monitor" /></svg></span><span><svg class="ico sm"><use href="#i-tablet" /></svg></span><span><svg class="ico sm"><use href="#i-phone" /></svg></span></div>
+              <button class="iconbtn"><svg class="ico sm"><use href="#i-undo" /></svg></button>
+              <button class="iconbtn"><svg class="ico sm"><use href="#i-redo" /></svg></button>
+              <button class="btn ghost"><svg class="ico sm"><use href="#i-eye" /></svg> Preview</button>
+              <button class="btn ghost"><svg class="ico sm"><use href="#i-save" /></svg> Save</button>
+              <button class="btn primary" data-on-at="7.15" data-off-at="7.5" data-on-class="pressed"><svg class="ico sm"><use href="#i-upload" /></svg> Publish</button>
+            </div>
+            <aside class="epane">
+              <h4>Slides</h4>
+              <div class="reel" data-every="2.5" data-show-at="0.4">
+                <button class="thumb"><div class="ph s-living"><span class="num">01</span></div><div><p>Living room</p><small>image</small></div></button>
+                <button class="thumb"><div class="ph s-product"><span class="num">02</span></div><div><p>Everyday favorite</p><small>product</small></div></button>
+                <button class="thumb"><div class="ph s-video"><span class="num">03</span></div><div><p>Studio film</p><small>video</small></div></button>
+                <div class="show" hidden>
+                  <div class="slide"></div><div class="slide"></div><div class="slide"></div>
+                </div>
+              </div>
+              <button class="btn ghost" style="width:100%;justify-content:center;margin-top:6px"><svg class="ico sm"><use href="#i-plus" /></svg> Add slide</button>
+            </aside>
+            <div class="canvas">
+              <div class="frame-slide show" data-every="2.5" data-show-at="0.4">
+                <div class="slide s-living is-on">
+                  <div class="shape"></div>
+                  <div class="copy">
+                    <div class="eyebrow">New season</div>
+                    <h3>Make room for beautiful living.</h3>
+                    <p class="sub">Thoughtfully designed. Made for everyday.</p>
+                    <span class="pill">Shop the edit</span>
+                  </div>
+                </div>
+                <div class="slide s-product">
+                  <div class="card"></div>
+                  <div class="copy">
+                    <div class="eyebrow">The collection</div>
+                    <h3>Your next everyday favorite.</h3>
+                    <p class="sub">Discover the collection.</p>
+                    <span class="pill">Shop now</span>
+                  </div>
+                </div>
+                <div class="slide s-video">
+                  <div class="peak"></div>
+                  <div class="play-badge"><svg class="ico"><use href="#i-play" /></svg></div>
+                  <div class="copy">
+                    <div class="eyebrow">Video</div>
+                    <h3>Go a little further.</h3>
+                    <p class="sub">Discover what is waiting beyond the ordinary.</p>
+                    <span class="pill">Watch the film</span>
+                  </div>
+                </div>
+                <div class="selbox" data-on-at="0.2" data-off-at="2.9"><i></i><i></i><i></i><i></i></div>
+              </div>
+            </div>
+            <aside class="rpane">
+              <div class="tabs-mini">
+                <span class="is-on">Content</span><span>Media</span><span>Layout</span><span>Style</span><span>Animation</span><span>Responsive</span><span>Visibility</span><span>Advanced</span>
+              </div>
+              <h4>Layers</h4>
+              <div class="layer"><svg class="ico sm"><use href="#i-spark" /></svg> NEW <span class="kind">Badge</span></div>
+              <div class="layer is-on"><svg class="ico sm"><use href="#i-template" /></svg> Make room for beautiful… <span class="kind">Heading</span></div>
+              <div class="layer"><svg class="ico sm"><use href="#i-template" /></svg> Thoughtfully designed… <span class="kind">Text</span></div>
+              <div class="layer"><svg class="ico sm"><use href="#i-click" /></svg> Shop the edit <span class="kind">Button</span></div>
+              <div class="field" style="margin-top:14px">
+                <span class="lbl">Heading</span>
+                <div class="input">Make room for beautiful living.</div>
+              </div>
+              <div class="field">
+                <span class="lbl">Link</span>
+                <div class="input">/collections/summer</div>
+              </div>
+            </aside>
+          </div>
+          <div class="cap dark"><b>06</b> Editor</div>
+        </section>
+
+        <section class="scene" id="widget" data-label="Site widget. Choose a published slider, then set behavior, design, layout, and text.">
+          <div class="wix">
+            <aside class="rail">
+              <div class="sq"><svg class="ico"><use href="#i-plus" /></svg></div>
+              <div class="sq is-on"><svg class="ico"><use href="#i-layers" /></svg></div>
+              <div class="sq"><svg class="ico"><use href="#i-image" /></svg></div>
+              <div class="sq"><svg class="ico"><use href="#i-template" /></svg></div>
+              <div class="sq"><svg class="ico"><use href="#i-settings" /></svg></div>
+            </aside>
+            <div class="site">
+              <div class="page-sheet">
+                <div class="site-nav">
+                  <strong>ATELIER</strong>
+                  <nav><span>Shop</span><span>Lookbook</span><span>Stories</span><span>Visit</span></nav>
+                  <span>Bag</span>
+                </div>
+                <div class="widget-slot show" data-every="2.7" data-show-at="0.3">
+                  <div class="slide s-living"><div class="shape"></div><div class="copy"><div class="eyebrow">New season</div><h3>Make room for beautiful living.</h3><span class="pill">Shop the edit</span></div></div>
+                  <div class="slide s-product"><div class="card"></div><div class="copy"><div class="eyebrow">Products</div><h3>Your next everyday favorite.</h3><span class="pill">Shop now</span></div></div>
+                  <div class="slide s-video"><div class="peak"></div><div class="play-badge"><svg class="ico"><use href="#i-play" /></svg></div><div class="copy"><div class="eyebrow">Film</div><h3>Go a little further.</h3><span class="pill">Watch</span></div></div>
+                  <div class="arrows"><i>‹</i><i>›</i></div>
+                  <div class="dots"><b></b><b></b><b></b></div>
+                </div>
+                <div class="below"><div class="pcard"></div><div class="pcard"></div><div class="pcard"></div></div>
+              </div>
+            </div>
+            <aside class="panel" data-tabset="behavior:0,design:3.3,layout:6.2">
+              <div class="hd">
+                <span class="lbl">Slider</span>
+                <div class="input">Summer collection</div>
+              </div>
+              <div class="ptabs">
+                <span data-tab="behavior">Behavior</span>
+                <span data-tab="design">Design</span>
+                <span data-tab="layout">Layout</span>
+                <span data-tab="text">Text</span>
+              </div>
+              <div class="pbody" data-tabpanel="behavior">
+                <h4>Transition</h4>
+                <div class="field"><span class="lbl">Effect</span><div class="input">Fade</div></div>
+                <div class="field">
+                  <span class="lbl">Transition speed · <b data-count="700" data-count-delay="0.4" data-count-suffix=" ms">0 ms</b></span>
+                  <div class="range" data-on-at="1.1"><i></i><b></b></div>
+                </div>
+                <div class="field"><span class="lbl">Direction</span><div class="choice2"><span class="is-on">Horizontal</span><span>Vertical</span></div></div>
+                <div class="toggle">Loop slides <span class="sw is-on"></span></div>
+                <h4>Autoplay</h4>
+                <div class="toggle">Play automatically <span class="sw" data-on-at="1.8" data-on-class="is-on"></span></div>
+                <div class="toggle">Pause on hover <span class="sw is-on"></span></div>
+              </div>
+              <div class="pbody" data-tabpanel="design" hidden>
+                <h4>Navigation</h4>
+                <div class="field"><span class="lbl">Arrow color</span><div class="swatch"><i style="background:#20252f"></i> #20252F</div></div>
+                <div class="field"><span class="lbl">Arrow background</span><div class="swatch"><i style="background:#ffffff"></i> #FFFFFF</div></div>
+                <div class="toggle">Shadow <span class="sw is-on"></span></div>
+                <h4>Pagination</h4>
+                <div class="choice2"><span class="is-on">Dots</span><span>Numbers</span><span>Bar</span></div>
+              </div>
+              <div class="pbody" data-tabpanel="layout" hidden>
+                <h4>Desktop</h4>
+                <div class="field"><span class="lbl">Alignment</span><div class="input">Bottom left</div></div>
+                <div class="field"><span class="lbl">Height</span><div class="input">640 px</div></div>
+                <div class="field"><span class="lbl">Slides per view</span><div class="input">1</div></div>
+                <div class="toggle">Full width <span class="sw is-on"></span></div>
+              </div>
+            </aside>
+          </div>
+          <div class="cursor" data-path='[{"t":0.3,"x":78,"y":18},{"t":2.1,"x":86,"y":62,"c":1},{"t":3.5,"x":74,"y":24,"c":1},{"t":6.4,"x":82,"y":24,"c":1},{"t":8.2,"x":70,"y":48}]'></div>
+          <div class="cap dark"><b>07</b> Site widget</div>
+        </section>
+
+        <section class="scene studio" id="analytics" data-label="Analytics. Impressions, clicks, plays, and click-through rate.">
+          <div class="app ain">
+            <aside class="side" data-nav="Analytics"></aside>
+            <div class="work">
+              <header class="top"><div class="crumb">Workspace <span>›</span> <em>Analytics</em></div><div class="top-right"><span>Product, Image &amp; Video Slider</span><i class="avatar">W</i></div></header>
+              <div class="page">
+                <div class="page-head">
+                  <div>
+                    <h2>A closer look at your impact.</h2>
+                    <p>See what draws attention, sparks a click, and keeps visitors watching.</p>
+                  </div>
+                  <div class="filters">
+                    <div class="input" style="min-width:160px">All sliders</div>
+                    <div class="segbtn"><span>7d</span><span class="is-on">30d</span><span>90d</span></div>
+                  </div>
+                </div>
+                <div class="kpis">
+                  <article class="stat"><div class="row">Impressions</div><b data-count="24860" data-count-delay="0.2">0</b><small>Last 30 days</small></article>
+                  <article class="stat"><div class="row">Clicks</div><b data-count="1204" data-count-delay="0.3">0</b><small>Last 30 days</small></article>
+                  <article class="stat"><div class="row">Click-through</div><b data-count="4.8" data-count-fixed="1" data-count-suffix="%" data-count-delay="0.4">0%</b><small>Clicks / impressions</small></article>
+                  <article class="stat"><div class="row">Video plays</div><b data-count="860" data-count-delay="0.5">0</b><small>Last 30 days</small></article>
+                </div>
+                <div class="chart">
+                  <div class="bars">
+                    <i class="bar" data-h="42"></i><i class="bar" data-h="55"></i><i class="bar" data-h="48"></i><i class="bar" data-h="63"></i><i class="bar" data-h="58"></i><i class="bar" data-h="72"></i><i class="bar" data-h="66"></i><i class="bar" data-h="80"></i><i class="bar" data-h="74"></i><i class="bar" data-h="88"></i><i class="bar" data-h="70"></i><i class="bar" data-h="92"></i><i class="bar" data-h="84"></i><i class="bar" data-h="96"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="cap dark ain"><b>08</b> Analytics</div>
+        </section>
+
+        <section class="scene studio" id="workspace" data-label="Media library and settings. Uploads, autoplay, analytics, and Do Not Track.">
+          <div class="split">
+            <article class="pane ain">
+              <h3>Your media, ready to shine.</h3>
+              <p class="lead">Images and videos used in your sliders, managed with Wix Media Manager.</p>
+              <div class="media-grid">
+                <div class="tile s-living"><span>Living room</span></div>
+                <div class="tile s-product"><span>Favorite</span></div>
+                <div class="tile s-video"><span>Studio film</span></div>
+                <div class="tile" style="background:linear-gradient(145deg,#e7d7c4,#9a7b62)"><span>Ceramic</span></div>
+                <div class="tile" style="background:linear-gradient(160deg,#c9d5ce,#6d857c)"><span>Table</span></div>
+                <div class="tile" style="background:linear-gradient(160deg,#d5c6c2,#8a6a66)"><span>Linen</span></div>
+              </div>
+              <button class="btn primary"><svg class="ico sm"><use href="#i-image" /></svg> Open Media Manager</button>
+            </article>
+            <article class="pane ain" style="animation-delay:.12s">
+              <h3>Make it work your way.</h3>
+              <p class="lead">Defaults for the next slider, and how analytics should behave.</p>
+              <h4 style="margin:0 0 4px;font-size:14px">Creation defaults</h4>
+              <div class="toggle">Autoplay new sliders <span class="sw is-on"></span></div>
+              <h4 style="margin:12px 0 4px;font-size:14px">Analytics &amp; privacy</h4>
+              <div class="toggle">Enable analytics for new sliders <span class="sw is-on"></span></div>
+              <div class="toggle">Respect Do Not Track <span class="sw is-on"></span></div>
+              <div class="note"><svg class="ico sm"><use href="#i-check" /></svg><span>Analytics use anonymous browser session IDs. Content and analytics are stored in Wix Data for the current site.</span></div>
+              <button class="btn primary"><svg class="ico sm"><use href="#i-save" /></svg> Save settings</button>
+            </article>
+          </div>
+          <div class="cap dark ain"><b>09</b> Media &amp; settings</div>
+        </section>
+
+        <section class="scene dark" id="end" data-label="sliders. is live. Make every slide count.">
+          <div class="end-lock">
+            <div>
+              <div class="mark ain"><svg class="ico"><use href="#i-layers" /></svg></div>
+              <h2 class="display ain" style="animation-delay:.15s">Now live.</h2>
+              <div class="line ain" style="animation-delay:.35s">sliders<i style="color:#8eabff;font-style:normal">.</i> &nbsp;Make every slide count.</div>
+              <div class="pills ain" style="animation-delay:.55s">
+                <span>Templates</span><span>Layer editor</span><span>Site widget</span><span>Analytics</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <button id="gate" type="button">
+      <span class="gate-card">
+        <span class="mark"><svg class="ico"><use href="#i-layers" /></svg></span>
+        <h1 class="display">sliders<i>.</i></h1>
+        <p>MAKE EVERY SLIDE COUNT</p>
+        <span class="play-pill"><span><svg class="ico sm"><use href="#i-play" /></svg></span> Play launch film</span>
+        <span class="gate-note">Original music · No voiceover · 1:15</span>
+      </span>
+    </button>
+    <a id="download" href="sliders-launch.mp4" download="sliders-launch.mp4">Download MP4</a>
+
+    <div id="chrome">
+      <button id="play" type="button" aria-label="Play">
+        <svg class="ico" id="icon-play"><use href="#i-play" /></svg>
+      </button>
+      <span id="clock">0:00</span>
+      <input id="scrub" type="range" min="0" max="75" step="0.01" value="0" aria-label="Film position" />
+      <span id="chapter">Opening</span>
+      <button id="mute" type="button" aria-label="Mute music" aria-pressed="false">♪</button>
+    </div>
+
+    <script>
+      const DURATION = 75;
+      const CUTS = [0, 5, 10, 17.5, 22.5, 27.5, 35, 45, 55, 62.5, 67.5, 75];
+      const NAMES = ["Opening", "Formats", "Dashboard", "Templates", "Sliders", "Create", "Editor", "Widget", "Analytics", "Workspace", "End card"];
+      const FADE = 0.45;
+      const clamp = (n) => Math.max(0, Math.min(1, n));
+      const ease = (n) => 1 - Math.pow(1 - clamp(n), 3);
+      const stage = document.getElementById("stage");
+      const scenes = [...document.querySelectorAll(".scene")];
+      const live = document.getElementById("live");
+      const scrub = document.getElementById("scrub");
+      const clock = document.getElementById("clock");
+      const chapterEl = document.getElementById("chapter");
+      const gate = document.getElementById("gate");
+      const playBtn = document.getElementById("play");
+      const muteBtn = document.getElementById("mute");
+      const iconPlay = document.getElementById("icon-play");
+
+      const NAV = [
+        ["Overview", "i-dash"],
+        ["Sliders", "i-panels"],
+        ["Templates", "i-template"],
+        ["Media", "i-image"],
+        ["Analytics", "i-chart"],
+        ["Settings", "i-settings"],
+      ];
+
+      function paintIcons(root = document) {
+        root.querySelectorAll("svg.ico").forEach((node) => {
+          node.setAttribute("viewBox", "0 0 24 24");
+        });
+        root.querySelectorAll("symbol").forEach((node) => {
+          const play = node.id === "i-play";
+          node.setAttribute("fill", play ? "currentColor" : "none");
+          node.setAttribute("stroke", play ? "none" : "currentColor");
+          node.setAttribute("stroke-width", play ? "0" : "2");
+          node.setAttribute("stroke-linecap", "round");
+          node.setAttribute("stroke-linejoin", "round");
+        });
+      }
+
+      document.querySelectorAll(".side").forEach((aside) => {
+        const active = aside.dataset.nav;
+        const tip = aside.dataset.tip === "1";
+        aside.innerHTML = `
+          <div class="brand">
+            <div class="mark"><svg class="ico"><use href="#i-layers"/></svg></div>
+            <div><strong>sliders<i>.</i></strong><small>MAKE EVERY SLIDE COUNT</small></div>
+          </div>
+          <p class="nav-label">Workspace</p>
+          ${NAV.map(([name, icon]) => `<div class="nav-item${name === active ? " is-on" : ""}"><svg class="ico sm"><use href="#${icon}"/></svg>${name}${name === "Sliders" ? '<span class="count">12</span>' : ""}</div>`).join("")}
+          ${tip ? `<div class="tip"><span>✦</span><strong>A little inspiration?</strong><p>Find a fresh starting point for your next great slider.</p><button class="btn ghost" style="width:100%;justify-content:center">Explore templates</button></div>` : ""}
+          <div class="who"><i>W</i> Wix workspace <span class="dot-live"></span></div>`;
+      });
+      paintIcons();
+
+      let audioCtx = null;
+      let startedAt = 0;
+      let playing = false;
+      let ended = false;
+      let held = 0;
+      let muted = false;
+      let muteGain = null;
+      let lastLabel = "";
+      let rafLast = 0;
+
+      function fit() {
+        const s = Math.min(innerWidth / 1920, innerHeight / 1080);
+        stage.style.setProperty("--s", String(s));
+      }
+      addEventListener("resize", fit);
+      fit();
+
+      function fmt(t) {
+        const s = Math.max(0, Math.floor(t));
+        return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+      }
+
+      function filmNow() {
+        if (audioCtx && audioCtx.state !== "closed") return audioCtx.currentTime - startedAt;
+        return held;
+      }
+
+      function opacityFor(t, i) {
+        const start = CUTS[i];
+        const end = i === CUTS.length - 2 ? CUTS[i + 1] : CUTS[i + 1] + FADE;
+        if (t < start || t > end) return 0;
+        const inn = clamp((t - start) / FADE);
+        const out = i === CUTS.length - 2 ? 1 : clamp((end - t) / FADE);
+        return Math.min(inn, out);
+      }
+
+      function localTime(t, i) {
+        return t - CUTS[i];
+      }
+
+      function applyScene(scene, lt, on) {
+        scene.querySelectorAll("[data-count]").forEach((el) => {
+          const delay = +(el.dataset.countDelay || 0);
+          const dur = +(el.dataset.countDur || 1.15);
+          const p = ease((lt - delay) / dur);
+          const target = +el.dataset.count;
+          const value = target * (on ? p : 0);
+          const fixed = el.dataset.countFixed;
+          const num = fixed != null ? value.toFixed(+fixed) : Math.round(value).toLocaleString();
+          el.textContent = `${num}${el.dataset.countSuffix || ""}`;
+        });
+        scene.querySelectorAll("[data-type]").forEach((el) => {
+          const start = +el.dataset.typeStart;
+          const dur = +el.dataset.typeDur;
+          const text = el.dataset.type;
+          const n = on ? Math.round(clamp((lt - start) / dur) * text.length) : 0;
+          el.textContent = text.slice(0, n);
+        });
+        scene.querySelectorAll("[data-switch-at]").forEach((el) => {
+          const flipped = on && lt >= +el.dataset.switchAt;
+          el.textContent = flipped ? el.dataset.switchB : el.dataset.switchA;
+          if (el.dataset.switchClass) el.classList.toggle(el.dataset.switchClass, flipped);
+        });
+        scene.querySelectorAll("[data-on-at]").forEach((el) => {
+          const a = +el.dataset.onAt;
+          const b = el.dataset.offAt ? +el.dataset.offAt : Infinity;
+          el.classList.toggle(el.dataset.onClass || "is-on", on && lt >= a && lt < b);
+        });
+        scene.querySelectorAll("[data-stepper]").forEach((wrap) => {
+          const times = wrap.dataset.stepper.split(",").map(Number);
+          let current = -1;
+          if (on) times.forEach((time, idx) => { if (lt >= time) current = idx; });
+          wrap.querySelectorAll("[data-step]").forEach((el) => {
+            el.classList.toggle("is-on", +el.dataset.step <= current);
+          });
+        });
+        scene.querySelectorAll("[data-pick-at]").forEach((wrap) => {
+          const picked = on && lt >= +wrap.dataset.pickAt;
+          wrap.querySelectorAll("span").forEach((el, idx) => el.classList.toggle("is-on", picked && idx === 0));
+        });
+        scene.querySelectorAll("[data-tabset]").forEach((set) => {
+          const pairs = set.dataset.tabset.split(",").map((part) => {
+            const [id, time] = part.split(":");
+            return { id, time: +time };
+          });
+          let current = pairs[0].id;
+          if (on) pairs.forEach((pair) => { if (lt >= pair.time) current = pair.id; });
+          set.querySelectorAll("[data-tab]").forEach((el) => el.classList.toggle("is-on", el.dataset.tab === current));
+          set.querySelectorAll("[data-tabpanel]").forEach((el) => { el.hidden = el.dataset.tabpanel !== current; });
+        });
+        scene.querySelectorAll(".reel, .show").forEach((show) => {
+          if (!show.dataset.every) return;
+          if (show.closest(".reel") && show.classList.contains("show")) return;
+          const every = +show.dataset.every;
+          const start = +(show.dataset.showAt || 0);
+          const slides = show.classList.contains("reel")
+            ? [...show.querySelectorAll(":scope > .show .slide")]
+            : [...show.children].filter((el) => el.classList.contains("slide"));
+          const thumbs = show.classList.contains("reel") ? [...show.querySelectorAll(":scope > .thumb")] : [];
+          const count = Math.max(slides.length, thumbs.length, 1);
+          const idx = on && lt >= start ? Math.floor((lt - start) / every) % count : 0;
+          slides.forEach((el, n) => el.classList.toggle("is-on", n === idx));
+          thumbs.forEach((el, n) => el.classList.toggle("is-on", n === idx));
+          show.querySelectorAll(".dots b").forEach((el, n) => el.classList.toggle("is-on", n === idx));
+        });
+        scene.querySelectorAll(".bar").forEach((el, i) => {
+          const p = on ? ease((lt - 0.25 - i * 0.04) / 0.7) : 0;
+          el.style.transform = `scaleY(${(p * +el.dataset.h) / 100})`;
+        });
+        scene.querySelectorAll(".cursor").forEach((el) => {
+          const keys = JSON.parse(el.dataset.path);
+          el.classList.toggle("show", on && lt > keys[0].t && lt < 9.4);
+          let a = keys[0];
+          let b = keys[keys.length - 1];
+          for (let i = 0; i < keys.length - 1; i++) {
+            if (lt >= keys[i].t && lt <= keys[i + 1].t) { a = keys[i]; b = keys[i + 1]; break; }
+          }
+          const span = Math.max(0.001, b.t - a.t);
+          const p = ease((lt - a.t) / span);
+          const x = a.x + (b.x - a.x) * (lt > b.t ? 1 : p);
+          const y = a.y + (b.y - a.y) * (lt > b.t ? 1 : p);
+          el.style.left = `${x}%`;
+          el.style.top = `${y}%`;
+          const clicking = keys.some((key) => key.c && Math.abs(lt - key.t) < 0.16);
+          el.classList.toggle("click", clicking);
+        });
+      }
+
+      function render(t) {
+        const time = Math.min(t, DURATION - 0.04);
+        scenes.forEach((scene, i) => {
+          const op = opacityFor(time, i);
+          scene.style.opacity = String(op);
+          scene.style.visibility = op > 0.01 ? "visible" : "hidden";
+          const active = op > 0.08;
+          scene.classList.toggle("settled", active && localTime(time, i) > 1.35);
+          if (active && scene.dataset.live !== "1") {
+            scene.dataset.live = "1";
+            scene.classList.add("on");
+            scene.querySelectorAll(".ain").forEach((el) => {
+              el.style.animation = "none";
+              void el.offsetWidth;
+              el.style.animation = "";
+            });
+          } else if (!active && scene.dataset.live === "1") {
+            scene.dataset.live = "";
+            scene.classList.remove("on");
+          }
+          applyScene(scene, localTime(time, i), active);
+          if (op > 0.55 && scene.dataset.label && lastLabel !== scene.dataset.label) {
+            lastLabel = scene.dataset.label;
+            live.textContent = scene.dataset.label;
+          }
+        });
+        scrub.value = String(time);
+        clock.textContent = `${fmt(time)} / ${fmt(DURATION)}`;
+        let name = NAMES[0];
+        CUTS.forEach((cut, i) => { if (time >= cut && i < NAMES.length) name = NAMES[i]; });
+        chapterEl.textContent = name;
+      }
+
+      function noiseBuffer(ctx) {
+        const length = ctx.sampleRate * 2;
+        const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
+        return buffer;
+      }
+
+      function envGain(ctx, start, peak, attack, release, hold) {
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(peak, start + attack);
+        gain.gain.setValueAtTime(peak, start + attack + hold);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + attack + hold + release);
+        return gain;
+      }
+
+      function scheduleScore(ctx, destination, from) {
+        const bpm = 96;
+        const beat = 60 / bpm;
+        const bar = beat * 4;
+        const bars = 30;
+        const noise = noiseBuffer(ctx);
+        const dry = ctx.createGain();
+        dry.gain.value = 1;
+        const delay = ctx.createDelay();
+        delay.delayTime.value = beat * 0.75;
+        const feedback = ctx.createGain();
+        feedback.gain.value = 0.22;
+        const delayGain = ctx.createGain();
+        delayGain.gain.value = 0.18;
+        delay.connect(feedback);
+        feedback.connect(delay);
+        delay.connect(delayGain);
+        dry.connect(destination);
+        delayGain.connect(destination);
+
+        const at = (filmTime, fn) => {
+          if (filmTime < from || filmTime >= DURATION) return;
+          fn(ctx.currentTime + (filmTime - from));
+        };
+
+        const chords = [
+          [110, 164.81, 220, 261.63, 329.63],
+          [87.31, 130.81, 174.61, 220, 261.63],
+          [130.81, 164.81, 196, 246.94, 329.63],
+          [98, 146.83, 196, 246.94, 293.66],
+        ];
+        const roots = [110, 87.31, 130.81, 98];
+        const motif = [329.63, 392, 440, 392, 329.63, 293.66, 261.63, 220];
+        const answer = [261.63, 293.66, 329.63, 392, 329.63, 293.66, 261.63, 220];
+
+        for (let i = 0; i < bars; i++) {
+          const time = i * bar;
+          const chord = chords[i % 4];
+          at(time, (when) => {
+            chord.forEach((freq, n) => {
+              const osc = ctx.createOscillator();
+              osc.type = "triangle";
+              osc.frequency.value = freq * (n % 2 ? 1.004 : 0.997);
+              const gain = envGain(ctx, when, i < 2 ? 0.02 : 0.028, 0.45, 0.8, bar * 0.72);
+              osc.connect(gain);
+              gain.connect(dry);
+              osc.start(when);
+              osc.stop(when + bar + 0.2);
+            });
+          });
+          if (i >= 1) {
+            [0, 2].forEach((step) => {
+              at(time + step * beat, (when) => {
+                const osc = ctx.createOscillator();
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(roots[i % 4] / 2, when);
+                const gain = envGain(ctx, when, 0.11, 0.02, 0.28, 0.05);
+                osc.connect(gain);
+                gain.connect(dry);
+                osc.start(when);
+                osc.stop(when + 0.4);
+              });
+            });
+          }
+          if (i >= 2) {
+            const notes = i % 2 === 0 ? motif : answer;
+            notes.forEach((freq, step) => {
+              at(time + step * (beat / 2), (when) => {
+                const osc = ctx.createOscillator();
+                osc.type = "triangle";
+                osc.frequency.value = freq;
+                const gain = envGain(ctx, when, 0.045, 0.015, 0.22, 0.02);
+                osc.connect(gain);
+                gain.connect(dry);
+                gain.connect(delay);
+                osc.start(when);
+                osc.stop(when + 0.32);
+              });
+            });
+          }
+          for (let step = 0; step < 8; step++) {
+            const hit = time + step * (beat / 2);
+            if (step % 4 === 0) {
+              at(hit, (when) => {
+                const osc = ctx.createOscillator();
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(148, when);
+                osc.frequency.exponentialRampToValueAtTime(46, when + 0.09);
+                const gain = envGain(ctx, when, i < 2 ? 0.28 : 0.42, 0.005, 0.18, 0.02);
+                osc.connect(gain);
+                gain.connect(dry);
+                osc.start(when);
+                osc.stop(when + 0.26);
+              });
+            }
+            if (i >= 2 && step % 4 === 2) {
+              at(hit, (when) => {
+                const src = ctx.createBufferSource();
+                src.buffer = noise;
+                const filter = ctx.createBiquadFilter();
+                filter.type = "bandpass";
+                filter.frequency.value = 1800;
+                filter.Q.value = 0.7;
+                const gain = envGain(ctx, when, 0.07, 0.004, 0.12, 0.01);
+                src.connect(filter);
+                filter.connect(gain);
+                gain.connect(dry);
+                src.start(when);
+                src.stop(when + 0.16);
+              });
+            }
+            if (i >= 1) {
+              at(hit, (when) => {
+                const src = ctx.createBufferSource();
+                src.buffer = noise;
+                const filter = ctx.createBiquadFilter();
+                filter.type = "highpass";
+                filter.frequency.value = 7000;
+                const gain = envGain(ctx, when, step % 2 ? 0.018 : 0.03, 0.002, 0.03, 0.004);
+                src.connect(filter);
+                filter.connect(gain);
+                gain.connect(dry);
+                src.start(when);
+                src.stop(when + 0.05);
+              });
+            }
+          }
+        }
+
+        const master = destination;
+        const now = ctx.currentTime;
+        const intro = Math.max(0, 0.7 - from);
+        master.gain.cancelScheduledValues(now);
+        master.gain.setValueAtTime(Math.max(0.0001, from < 0.7 ? from / 0.7 : 1), now);
+        if (intro > 0) master.gain.linearRampToValueAtTime(1, now + intro);
+        if (from < 71) master.gain.setValueAtTime(1, now + Math.max(intro + 0.05, 71 - from));
+        if (from < DURATION) master.gain.linearRampToValueAtTime(0.0001, now + (DURATION - from));
+      }
+
+      async function playFrom(time) {
+        if (audioCtx) {
+          try { await audioCtx.close(); } catch { /* already closed */ }
+        }
+        audioCtx = new AudioContext();
+        if (audioCtx.state === "suspended") await audioCtx.resume();
+        const comp = audioCtx.createDynamicsCompressor();
+        comp.threshold.value = -16;
+        comp.knee.value = 18;
+        comp.ratio.value = 2.4;
+        comp.attack.value = 0.01;
+        comp.release.value = 0.25;
+        muteGain = audioCtx.createGain();
+        muteGain.gain.value = muted ? 0 : 1;
+        const master = audioCtx.createGain();
+        master.connect(comp);
+        comp.connect(muteGain);
+        muteGain.connect(audioCtx.destination);
+        scheduleScore(audioCtx, master, time);
+        startedAt = audioCtx.currentTime - time;
+        held = time;
+        playing = true;
+        ended = false;
+        document.body.classList.add("playing");
+        document.body.classList.remove("paused", "ended");
+        gate.classList.add("hidden");
+        iconPlay.innerHTML = '<rect x="6" y="5" width="4" height="14" fill="currentColor" stroke="none"/><rect x="14" y="5" width="4" height="14" fill="currentColor" stroke="none"/>';
+        playBtn.setAttribute("aria-label", "Pause");
+      }
+
+      function pause() {
+        if (!audioCtx || audioCtx.state !== "running") return;
+        held = filmNow();
+        playing = false;
+        audioCtx.suspend();
+        document.body.classList.add("paused");
+        document.body.classList.remove("playing");
+        iconPlay.innerHTML = '<use href="#i-play"/>';
+        playBtn.setAttribute("aria-label", "Play");
+      }
+
+      function resume() {
+        if (!audioCtx || ended) return playFrom(ended ? 0 : held);
+        playing = true;
+        audioCtx.resume();
+        document.body.classList.add("playing");
+        document.body.classList.remove("paused");
+        iconPlay.innerHTML = '<rect x="6" y="5" width="4" height="14" fill="currentColor" stroke="none"/><rect x="14" y="5" width="4" height="14" fill="currentColor" stroke="none"/>';
+        playBtn.setAttribute("aria-label", "Pause");
+      }
+
+      function toggle() {
+        if (!audioCtx) return playFrom(0);
+        if (ended) return playFrom(0);
+        if (playing) pause();
+        else resume();
+      }
+
+      function stopAtEnd() {
+        playing = false;
+        ended = true;
+        held = DURATION - 0.04;
+        if (audioCtx && audioCtx.state === "running") audioCtx.suspend();
+        document.body.classList.remove("playing", "paused");
+        document.body.classList.add("ended");
+        iconPlay.innerHTML = '<use href="#i-play"/>';
+        playBtn.setAttribute("aria-label", "Replay");
+      }
+
+      gate.addEventListener("click", () => playFrom(0));
+      playBtn.addEventListener("click", toggle);
+      muteBtn.addEventListener("click", () => {
+        muted = !muted;
+        muteBtn.setAttribute("aria-pressed", String(muted));
+        muteBtn.textContent = muted ? "×" : "♪";
+        if (muteGain) muteGain.gain.setTargetAtTime(muted ? 0 : 1, audioCtx.currentTime, 0.03);
+      });
+      scrub.addEventListener("input", () => {
+        const next = +scrub.value;
+        if (playing || audioCtx) playFrom(next);
+        else {
+          held = next;
+          render(next);
+        }
+      });
+      addEventListener("keydown", (event) => {
+        if (event.target === scrub) return;
+        if (event.code === "Space") { event.preventDefault(); toggle(); }
+        if (event.key === "m" || event.key === "M") muteBtn.click();
+        if (event.key === "ArrowRight") playFrom(Math.min(DURATION - 0.2, filmNow() + 5));
+        if (event.key === "ArrowLeft") playFrom(Math.max(0, filmNow() - 5));
+      });
+
+      function frame(ts) {
+        if (!playing && !audioCtx) {
+          rafLast = ts;
+          requestAnimationFrame(frame);
+          return;
+        }
+        let t = filmNow();
+        try {
+          if (t >= DURATION - 0.05) {
+            render(DURATION - 0.04);
+            if (playing) stopAtEnd();
+          } else {
+            render(t);
+          }
+        } catch (error) {
+          window.__film.error = String(error && error.stack || error);
+        }
+        rafLast = ts;
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+      render(0);
+
+      function encodeWav(audio) {
+        const channels = [];
+        for (let i = 0; i < audio.numberOfChannels; i++) channels.push(audio.getChannelData(i));
+        const samples = audio.length;
+        const block = channels.length * 2;
+        const buffer = new ArrayBuffer(44 + samples * block);
+        const view = new DataView(buffer);
+        const write = (offset, text) => {
+          for (let i = 0; i < text.length; i++) view.setUint8(offset + i, text.charCodeAt(i));
+        };
+        write(0, "RIFF");
+        view.setUint32(4, 36 + samples * block, true);
+        write(8, "WAVE");
+        write(12, "fmt ");
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, channels.length, true);
+        view.setUint32(24, audio.sampleRate, true);
+        view.setUint32(28, audio.sampleRate * block, true);
+        view.setUint16(32, block, true);
+        view.setUint16(34, 16, true);
+        write(36, "data");
+        view.setUint32(40, samples * block, true);
+        let offset = 44;
+        for (let i = 0; i < samples; i++) {
+          for (let c = 0; c < channels.length; c++) {
+            const sample = Math.max(-1, Math.min(1, channels[c][i]));
+            view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+            offset += 2;
+          }
+        }
+        const bytes = new Uint8Array(buffer);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i += 8192) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+        }
+        return btoa(binary);
+      }
+
+      async function renderWav() {
+        const sampleRate = 44100;
+        const offline = new OfflineAudioContext(2, Math.ceil(sampleRate * DURATION), sampleRate);
+        const master = offline.createGain();
+        const comp = offline.createDynamicsCompressor();
+        comp.threshold.value = -16;
+        comp.knee.value = 18;
+        comp.ratio.value = 2.4;
+        comp.attack.value = 0.01;
+        comp.release.value = 0.25;
+        master.connect(comp);
+        comp.connect(offline.destination);
+        scheduleScore(offline, master, 0);
+        return encodeWav(await offline.startRendering());
+      }
+
+      window.__film = {
+        play: () => playFrom(0),
+        seek: (time) => playFrom(time),
+        pause,
+        duration: DURATION,
+        time: filmNow,
+        state: () => (audioCtx ? audioCtx.state : "none"),
+        renderWav,
+      };
+
+      if (new URLSearchParams(location.search).has("record")) {
+        document.body.classList.add("record");
+      }
+    </script>
+  </body>
+</html>

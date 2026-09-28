@@ -78,12 +78,38 @@ export function SliderSlideContent({
     ? settings.typography.description
     : s.description;
   const pad = device === "mobile" ? Math.min(s.padding, 24) : s.padding;
+  const filters = [
+    s.mediaBlur && `blur(${s.mediaBlur}px)`,
+    s.mediaBrightness !== 100 && `brightness(${s.mediaBrightness}%)`,
+    s.mediaContrast !== 100 && `contrast(${s.mediaContrast}%)`,
+    s.mediaSaturation !== 100 && `saturate(${s.mediaSaturation}%)`,
+    s.mediaGrayscale && `grayscale(${s.mediaGrayscale}%)`,
+  ].filter(Boolean);
+  // Blur fades the image edges to transparent; scale up slightly to hide them.
+  const zoom = slide.media.zoom * (s.mediaBlur ? 1 + s.mediaBlur / 100 : 1);
   const mediaStyle: CSSProperties = {
     objectFit: slide.media.fit,
     objectPosition: `${slide.media.focalX}% ${slide.media.focalY}%`,
-    transform: `scale(${slide.media.zoom})`,
+    transform: `scale(${zoom})`,
     borderRadius: slide.media.radius,
+    filter: filters.length ? filters.join(" ") : undefined,
+    opacity: s.mediaOpacity,
   };
+  const panelStyle: CSSProperties = s.panel.enabled
+    ? {
+        background: `color-mix(in srgb, ${s.panel.color} ${Math.round(s.panel.opacity * 100)}%, transparent)`,
+        backdropFilter: `blur(${s.panel.blur}px)`,
+        WebkitBackdropFilter: `blur(${s.panel.blur}px)`,
+        borderRadius: s.panel.radius,
+        padding: s.panel.padding,
+      }
+    : {};
+  const textShadow =
+    s.textShadow === "soft"
+      ? "0 1px 3px rgba(0,0,0,.35)"
+      : s.textShadow === "strong"
+        ? "0 2px 12px rgba(0,0,0,.6)"
+        : undefined;
   const motionStyle = {
     "--sl-animation": `sl-${slide.animation.type}`,
     "--sl-duration": `${slide.animation.duration}ms`,
@@ -229,6 +255,7 @@ export function SliderSlideContent({
         style={{
           ...typography(l),
           ...position,
+          textShadow,
           width: l.variant === "badge" ? undefined : `${l.width}%`,
           maxWidth: l.maxWidth,
         }}
@@ -243,7 +270,7 @@ export function SliderSlideContent({
       className="sl-card"
       style={{
         background: s.useGradient
-          ? `linear-gradient(135deg,${s.background},${s.gradient})`
+          ? `linear-gradient(${s.gradientAngle}deg,${s.background},${s.gradient})`
           : s.background,
       }}
     >
@@ -268,7 +295,13 @@ export function SliderSlideContent({
         ))}
       <div
         className="sl-overlay"
-        style={{ background: s.overlayColor, opacity: s.overlay }}
+        style={{
+          background:
+            s.overlayType === "gradient"
+              ? `linear-gradient(${s.overlayAngle}deg,${s.overlayColor},${s.overlayColor2})`
+              : s.overlayColor,
+          opacity: s.overlay,
+        }}
       />
       {zones.map(([zone, items]) => (
         <div
@@ -287,8 +320,12 @@ export function SliderSlideContent({
               active && slide.animation.type !== "none" && !editing
                 ? "sl-motion"
                 : ""
-            }`}
-            style={{ ...motionStyle, alignItems: horizontal(zone) }}
+            } ${s.panel.enabled ? "sl-panel" : ""}`}
+            style={{
+              ...motionStyle,
+              ...panelStyle,
+              alignItems: horizontal(zone),
+            }}
           >
             {groupButtons(items).map((group) =>
               group.length > 1 || group[0]?.kind === "button" ? (

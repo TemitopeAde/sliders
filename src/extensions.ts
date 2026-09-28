@@ -5,4 +5,13 @@ import sliderCarousel from "./extensions/site/widgets/slider-carousel/slider-car
 
 import dataCollections from "./extensions/backend/data-collections/data-collections.extension.ts";
 
-export default app().use(myPage).use(sliderCarousel).use(dataCollections);
+import slidersAiTools from "./extensions/backend/app-tools/sliders-ai-tools/sliders-ai-tools.extension.ts";
+
+import sliderTools from "./extensions/backend/service-plugins/slider-tools/slider-tools.extension.ts";
+
+export default app()
+  .use(myPage)
+  .use(sliderCarousel)
+  .use(dataCollections)
+  .use(slidersAiTools)
+  .use(sliderTools);
