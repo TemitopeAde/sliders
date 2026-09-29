@@ -36,6 +36,13 @@ export function normalizeProduct(p: products.Product): StoreProduct {
       !!p.customTextFields?.some((f) => f.mandatory),
   };
 }
+export async function getStoresInstallation() {
+  const { catalogVersion } = await catalogVersioning.getCatalogVersion();
+  return {
+    installed:
+      catalogVersion === "V1_CATALOG" || catalogVersion === "V3_CATALOG",
+  };
+}
 export async function queryProducts(
   search = "",
   collectionId = "",

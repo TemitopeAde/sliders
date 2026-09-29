@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { dashboard } from "@wix/dashboard";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useQuery } from "@tanstack/react-query";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Image, Video, ShoppingBag, Tag, Type, ImagePlus } from "lucide-react";
+import { toast } from "sonner";
+import { Image, Video, ShoppingBag, Tag, Type, Upload } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { createSlide, slideSchema, type Slide } from "../../schemas/slider";
 import { uploadSlideMedia } from "../../lib/wix/upload-slide-media";
+import { api } from "../../lib/api/client";
 import { ProductPicker } from "./ProductPicker";
 const schema = z.object({
   title: z.string().trim().min(1, "Enter a title").max(160),
@@ -32,12 +34,24 @@ export function AddSlideDialog({
   const [type, setType] = useState<Slide["type"]>("image");
   const [productId, setProductId] = useState("");
   const [media, setMedia] = useState({ url: "", name: "" });
-  const [busyAction, setBusyAction] = useState<"upload" | "picker" | null>(
-    null,
-  );
-  const busy = busyAction !== null;
+  const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
   const [mediaError, setMediaError] = useState("");
+  const fileInput = useRef<HTMLInputElement>(null);
+  const stores = useQuery({
+    queryKey: ["stores-installation"],
+    queryFn: () => api<{ installed: boolean }>("products?mode=installation"),
+    enabled: open,
+  });
+  const productAvailable =
+    stores.data?.installed === true && !stores.isFetching && !stores.isError;
+  useEffect(() => {
+    if (open && stores.isError && !stores.isFetching)
+      toast.error(
+        `Could not verify Wix Stores. Product slides are unavailable. ${stores.error.message}`,
+        { duration: 5000 },
+      );
+  }, [open, stores.isError, stores.isFetching, stores.error]);
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: { title: "", description: "" },
@@ -63,7 +77,7 @@ export function AddSlideDialog({
       );
       return;
     }
-    setBusyAction("upload");
+    setBusy(true);
     setMediaError("");
     setProgress(0);
     try {
@@ -75,29 +89,7 @@ export function AddSlideDialog({
         error instanceof Error ? error.message : "Media upload failed.",
       );
     } finally {
-      setBusyAction(null);
-    }
-  };
-  const selectFromWix = async () => {
-    setBusyAction("picker");
-    setMediaError("");
-    try {
-      const result = await dashboard.openMediaManager({
-        category: type === "video" ? "VIDEO" : "IMAGE",
-        multiSelect: false,
-      });
-      const file = result?.items[0];
-      if (file?.url)
-        setMedia({ url: file.url, name: file.displayName ?? "Wix media" });
-    } catch (error) {
-      console.error("Wix Media Manager selection failed", error);
-      setMediaError(
-        error instanceof Error
-          ? error.message
-          : "Could not open Wix Media Manager.",
-      );
-    } finally {
-      setBusyAction(null);
+      setBusy(false);
     }
   };
   const types = [
@@ -120,22 +112,44 @@ export function AddSlideDialog({
           {types.map((t) => (
             <button
               key={t.value}
-              disabled={busy}
+              type="button"
+              disabled={busy || (t.value === "product" && !productAvailable)}
+              aria-pressed={type === t.value}
               onClick={() => {
                 setType(t.value);
                 setMedia({ url: "", name: "" });
                 setMediaError("");
               }}
-              className={`border rounded-lg py-3 flex flex-col gap-2 items-center text-xs capitalize ${type === t.value ? "border-blue-500 bg-blue-50 text-blue-600" : ""}`}
+              className={`border rounded-lg py-3 flex flex-col gap-2 items-center text-xs capitalize ${t.value === "product" && !productAvailable ? "border-dashed border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed" : ""} ${type === t.value ? "border-blue-500 bg-blue-50 text-blue-600" : ""}`}
             >
               <t.icon size={20} />
               {t.value}
+              {t.value === "product" && !productAvailable && (
+                <span className="text-[9px] normal-case">
+                  {stores.isFetching
+                    ? "Checking…"
+                    : stores.data?.installed === false
+                      ? "Stores needed"
+                      : "Unavailable"}
+                </span>
+              )}
             </button>
           ))}
         </div>
+        {stores.isFetching && open && (
+          <p className="muted text-xs" role="status">
+            Checking Wix Stores on this site…
+          </p>
+        )}
+        {stores.data?.installed === false && (
+          <p className="muted text-xs">
+            Install Wix Stores to add product slides.
+          </p>
+        )}
         <form
           className="space-y-4"
           onSubmit={form.handleSubmit((data) => {
+            if (type === "product" && !productAvailable) return;
             if ((type === "image" || type === "video") && !media.url) {
               setMediaError(
                 `Choose ${type === "video" ? "a video" : "an image"} first.`,
@@ -178,14 +192,15 @@ export function AddSlideDialog({
             />
           ) : type !== "text" ? (
             <div className="space-y-2">
-              <label htmlFor="slide-media" className="field-label">
-                {type === "video" ? "Video" : "Image"} file
-              </label>
-              <Input
+              <input
+                key={type}
+                ref={fileInput}
                 id="slide-media"
                 type="file"
                 accept={type === "video" ? "video/*" : "image/*"}
                 disabled={busy}
+                className="sr-only"
+                aria-label={`Choose ${type === "video" ? "video" : "image"} from computer`}
                 onChange={(event) => {
                   void selectFile(event.target.files?.[0]);
                   event.target.value = "";
@@ -196,20 +211,15 @@ export function AddSlideDialog({
                 variant="outline"
                 className="w-full"
                 disabled={busy}
-                onClick={() => void selectFromWix()}
+                onClick={() => fileInput.current?.click()}
               >
-                <ImagePlus size={16} /> Choose from Wix Media Manager
+                <Upload size={16} /> Upload{" "}
+                {type === "video" ? "video" : "image"} from computer
               </Button>
               {busy && (
                 <div className="space-y-1" role="status">
-                  <span className="text-xs">
-                    {busyAction === "upload"
-                      ? `Uploading ${progress}%`
-                      : "Opening Wix Media Manager…"}
-                  </span>
-                  {busyAction === "upload" && (
-                    <progress className="w-full" max={100} value={progress} />
-                  )}
+                  <span className="text-xs">Uploading {progress}%</span>
+                  <progress className="w-full" max={100} value={progress} />
                 </div>
               )}
               {media.url && (

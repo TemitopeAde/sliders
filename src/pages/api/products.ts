@@ -1,7 +1,9 @@
 import { route } from "../../lib/api/server";
-import { queryProducts } from "../../lib/wix/products";
+import { getStoresInstallation, queryProducts } from "../../lib/wix/products";
 import { z } from "zod";
 export const GET = route(({ url }) => {
+  if (url.searchParams.get("mode") === "installation")
+    return getStoresInstallation();
   const query = z
     .object({
       search: z.string().max(100),
