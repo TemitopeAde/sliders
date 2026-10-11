@@ -12,6 +12,8 @@ import {
   Input,
   SegmentedToggle,
   Button,
+  Box,
+  InfoIcon,
 } from "@wix/design-system";
 
 type Option<T extends string> = { id: T; label: string };
@@ -171,15 +173,26 @@ export function ColorField({
   label,
   value,
   onChange,
+  info,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  info?: ReactNode;
 }) {
   return (
     <SidePanel.Field>
       <FieldSet
-        legend={label}
+        legend={
+          info ? (
+            <Box gap="SP1" verticalAlign="middle">
+              {label}
+              <InfoIcon size="small" content={info} />
+            </Box>
+          ) : (
+            label
+          )
+        }
         legendSize="small"
         legendPlacement="left"
         columns="30px"
@@ -205,16 +218,18 @@ export function FontField({
   label,
   value,
   onChange,
+  info,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  info?: ReactNode;
 }) {
   const name =
     value === "inherit" ? "Site default" : (value.split(",")[0] ?? value);
   return (
     <SidePanel.Field>
-      <FormField label={label}>
+      <FormField label={label} infoContent={info}>
         <Button
           size="small"
           priority="secondary"

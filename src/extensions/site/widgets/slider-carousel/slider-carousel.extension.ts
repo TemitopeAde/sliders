@@ -2,7 +2,7 @@ import { extensions } from "@wix/astro/builders";
 
 export default extensions.customElement({
   id: "ccea1a56-11df-49eb-935d-1c8c6d2974b8",
-  name: "Sliders Carousel",
+  name: "Slide show",
   width: {
     defaultWidth: 980,
     allowStretch: true,

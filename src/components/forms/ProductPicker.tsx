@@ -4,6 +4,7 @@ import { api } from "../../lib/api/client";
 import type { StoreProduct } from "../../lib/wix/products";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
+import { InfoTip } from "./Fields";
 export function ProductPicker({
   selected,
   onSelect,
@@ -30,6 +31,13 @@ export function ProductPicker({
   });
   return (
     <div>
+      <div className="flex items-center gap-1 mb-[7px]">
+        <span className="field-label mb-0!">Product</span>
+        <InfoTip
+          label="Product"
+          text="Search Wix Stores and select the product to feature on this slide."
+        />
+      </div>
       <Input
         aria-label="Search Wix products"
         placeholder="Search Wix products…"

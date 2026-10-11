@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   Monitor,
@@ -24,6 +24,7 @@ import { useEditor } from "../../hooks/useEditor";
 import { api } from "../../lib/api/client";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { InfoTip } from "../forms/Fields";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,7 @@ import {
 import { Slider } from "../slider/Slider";
 import { SlidesSidebar } from "./SlidesSidebar";
 import { SlideSettings } from "./SlideSettings";
+import { createLayer } from "./LayersPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { AddSlideDialog } from "../forms/AddSlideDialog";
 import { Status } from "../../dashboard/Shared";
@@ -68,6 +70,13 @@ export function SliderEditor({
   const [templateBusy, setTemplateBusy] = useState(false);
   const [selectedLayer, setSelectedLayer] = useState<string>();
   const slide = draft.slides.find((s) => s._id === selected);
+  // Deleting or undoing away the selected slide falls back to the first one.
+  useEffect(() => {
+    if (!slide) {
+      setSelected(draft.slides[0]?._id ?? "");
+      setSelectedLayer(undefined);
+    }
+  }, [slide, draft.slides]);
   const updateSlides = (slides: Slide[]) => change({ ...draft, slides });
   const updateSlide = (next: Slide) =>
     updateSlides(draft.slides.map((s) => (s._id === next._id ? next : s)));
@@ -83,13 +92,19 @@ export function SliderEditor({
           <ArrowLeft size={18} />
         </Button>
         <div className="min-w-36 flex-1">
-          <Input
-            aria-label="Slider name"
-            className="border-0 shadow-none px-0 font-semibold text-base max-w-72"
-            value={draft.name}
-            disabled={editor.busy}
-            onChange={(e) => change({ ...draft, name: e.target.value })}
-          />
+          <div className="flex items-center gap-1">
+            <Input
+              aria-label="Slider name"
+              className="border-0 shadow-none px-0 font-semibold text-base max-w-72"
+              value={draft.name}
+              disabled={editor.busy}
+              onChange={(e) => change({ ...draft, name: e.target.value })}
+            />
+            <InfoTip
+              label="Slider name"
+              text="A name to identify this slider in your dashboard and when choosing it for your site."
+            />
+          </div>
           <span
             className={`text-[10px] ${editor.error ? "text-red-600" : "text-gray-400"}`}
           >
@@ -209,6 +224,15 @@ export function SliderEditor({
                         setSelectedLayer(id);
                         setPanel("slide");
                       },
+                      onAdd: (preset, zone) => {
+                        const next = createLayer(preset, zone);
+                        updateSlide({
+                          ...slide,
+                          layers: [...slide.layers, next],
+                        });
+                        setSelectedLayer(next._id);
+                        setPanel("slide");
+                      },
                       onChange: (id, patch) =>
                         updateSlide({
                           ...slide,
@@ -230,7 +254,8 @@ export function SliderEditor({
             </div>
           )}
           <p className="text-center text-[11px] text-gray-400 mt-5">
-            Click text or a button to edit it, drag to move it. Changes appear
+            Click text or a button to edit it, drag to move it. Drag new
+            elements from “Add to slide” onto the preview. Changes appear
             instantly — publish when you’re ready.
           </p>
           <div className="flex justify-center">

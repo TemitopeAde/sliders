@@ -16,10 +16,21 @@ import {
   positionSchema,
   typographySchema,
   type Layer,
+  type LayerZone,
 } from "../../schemas/slider";
+import { LAYER_DRAG_TYPE, type LayerPreset } from "../slider/SliderSlide";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
-import { Choice, NumberField, TextField, Toggle } from "../forms/Fields";
+import {
+  Choice,
+  NumberField,
+  TextField,
+  Toggle,
+  FieldLabel,
+  InfoTip,
+} from "../forms/Fields";
+import { buttonHelp, layerHelp } from "../../lib/slider/editor-help";
+import { settingsHelp } from "../../lib/slider/settings-help";
 import { SchemaFields } from "./SchemaFields";
 
 const presets = {
@@ -31,7 +42,9 @@ const presets = {
   },
   badge: { kind: "text", variant: "badge", text: "NEW" },
   button: { kind: "button", text: "Shop now" },
-} as const;
+} as const satisfies Record<LayerPreset, Partial<Layer>>;
+export const createLayer = (key: LayerPreset, zone: LayerZone): Layer =>
+  layerSchema.parse({ ...presets[key], _id: crypto.randomUUID(), zone });
 const typographyStart = {
   heading: {},
   paragraph: { fontSize: 16, fontWeight: 400, lineHeight: 1.6 },
@@ -75,11 +88,7 @@ export function LayersPanel({
     // New layers join the zone of the selected (or last) layer so they
     // appear next to existing content instead of in an arbitrary corner.
     const near = layer ?? layers.at(-1);
-    const next = layerSchema.parse({
-      ...presets[key],
-      _id: crypto.randomUUID(),
-      zone: near?.zone ?? "center-left",
-    });
+    const next = createLayer(key, near?.zone ?? "center-left");
     onChange([...layers, next]);
     onSelect(next._id);
   };
@@ -94,13 +103,22 @@ export function LayersPanel({
     <div className="space-y-4">
       <div>
         <span className="field-label">Add to slide</span>
+        <p className="text-[11px] text-gray-400 -mt-1 mb-2">
+          Click to add, or drag onto the preview to place it.
+        </p>
         <div className="grid grid-cols-4 gap-1.5">
           {addOptions.map((o) => (
             <button
               key={o.key}
               type="button"
+              draggable
+              title={`Click to add, or drag onto the slide`}
               onClick={() => add(o.key)}
-              className="border rounded-lg py-2 flex flex-col items-center gap-1 text-[11px] text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50"
+              onDragStart={(e) => {
+                e.dataTransfer.setData(LAYER_DRAG_TYPE, o.key);
+                e.dataTransfer.effectAllowed = "copy";
+              }}
+              className="border rounded-lg py-2 flex flex-col items-center gap-1 text-[11px] text-gray-600 cursor-grab active:cursor-grabbing hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50"
             >
               <o.icon size={15} />
               {o.label}
@@ -236,14 +254,17 @@ function LayerSettings({
       {isButton ? (
         <TextField
           label="Label"
+          tip={buttonHelp.label}
           value={layer.text}
           onChange={(text) => onChange({ text })}
         />
       ) : (
         <div>
-          <label htmlFor={`layer-${layer._id}`} className="field-label">
-            Text
-          </label>
+          <FieldLabel
+            htmlFor={`layer-${layer._id}`}
+            label="Text"
+            tip={layerHelp.text}
+          />
           <Textarea
             id={`layer-${layer._id}`}
             className="bg-white"
@@ -255,13 +276,17 @@ function LayerSettings({
       {!isButton && (
         <Choice
           label="Style"
+          tip={layerHelp.variant}
           value={layer.variant}
           options={layerSchema.shape.variant.removeDefault().options}
           onChange={(v) => onChange({ variant: v as Layer["variant"] })}
         />
       )}
       <div>
-        <span className="field-label">Position on slide</span>
+        <div className="flex items-center gap-1 mb-[7px]">
+          <span className="field-label mb-0!">Position on slide</span>
+          <InfoTip label="Position on slide" text={layerHelp.zone} />
+        </div>
         <div className="flex items-start gap-4">
           <div className="position-grid">
             {positionSchema.options.map((p) => (
@@ -286,6 +311,7 @@ function LayerSettings({
       <div className="grid grid-cols-2 gap-3">
         <NumberField
           label="Nudge X (px)"
+          tip={layerHelp.offsetX}
           value={layer.offsetX}
           min={-2000}
           max={2000}
@@ -293,6 +319,7 @@ function LayerSettings({
         />
         <NumberField
           label="Nudge Y (px)"
+          tip={layerHelp.offsetY}
           value={layer.offsetY}
           min={-2000}
           max={2000}
@@ -315,6 +342,7 @@ function LayerSettings({
         <div className="grid grid-cols-2 gap-3">
           <NumberField
             label="Width (%)"
+            tip={layerHelp.width}
             value={layer.width}
             min={5}
             max={100}
@@ -322,6 +350,7 @@ function LayerSettings({
           />
           <NumberField
             label="Max width (px)"
+            tip={layerHelp.maxWidth}
             value={layer.maxWidth}
             min={40}
             max={2000}
@@ -333,12 +362,14 @@ function LayerSettings({
         <>
           <TextField
             label="Link URL"
+            tip={buttonHelp.url}
             placeholder="https://… or /page"
             value={layer.button.url}
             onChange={(url) => onChange({ button: { ...layer.button, url } })}
           />
           <Toggle
             label="Open in new tab"
+            tip={buttonHelp.newTab}
             value={layer.button.newTab}
             onChange={(newTab) =>
               onChange({ button: { ...layer.button, newTab } })
@@ -351,6 +382,7 @@ function LayerSettings({
             <div className="mt-4">
               <SchemaFields
                 schema={buttonSchema}
+                hints={buttonHelp}
                 value={layer.button}
                 exclude={["label", "url", "newTab"]}
                 onChange={(v) => onChange({ button: v as Layer["button"] })}
@@ -362,6 +394,7 @@ function LayerSettings({
         <>
           <Toggle
             label="Use slide typography"
+            tip={layerHelp.inheritTypography}
             value={layer.inheritTypography}
             onChange={(inheritTypography) =>
               onChange(
@@ -379,6 +412,7 @@ function LayerSettings({
           {!layer.inheritTypography && (
             <SchemaFields
               schema={typographySchema}
+              hints={settingsHelp}
               value={layer.typography}
               onChange={(v) =>
                 onChange({ typography: v as Layer["typography"] })
@@ -394,6 +428,7 @@ function LayerSettings({
             <Toggle
               key={d}
               label={d.charAt(0).toUpperCase() + d.slice(1)}
+              tip={`Show this layer on ${d} screens. The slide must also be enabled on this device.`}
               value={layer.devices[d]}
               onChange={(v) =>
                 onChange({ devices: { ...layer.devices, [d]: v } })

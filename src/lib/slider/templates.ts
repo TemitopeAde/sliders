@@ -647,46 +647,46 @@ export const starterTemplates: SliderTemplate[] = [
   const position = newDesign
     ? positions[variation % positions.length]
     : "center-left";
-  const slide = slideSchema.parse({
-    _id: `${id}-slide`,
-    type: isText ? "text" : category === "Promotions" ? "promotion" : "image",
-    title,
-    description,
-    badge: category === "Promotions" ? "LIMITED TIME" : "THE NEW COLLECTION",
-    media: { url: image ? photo(image) : "", alt: name },
-    style: {
-      background,
-      overlay: image
-        ? newDesign
-          ? [0.18, 0.28, 0.36][variation % 3]
-          : 0.22
-        : 0,
-      heading: {
-        color: isText ? "#28372f" : "#ffffff",
-        fontSize: newDesign ? [36, 42, 50][variation % 3] : 40,
+  const headingSize = newDesign ? [36, 42, 50][variation % 3] : 40;
+  // Each slide is parsed on its own so its heading layer uses its own title.
+  const makeSlide = (suffix: string, slideTitle: string) =>
+    slideSchema.parse({
+      _id: `${id}-slide${suffix}`,
+      type: isText ? "text" : category === "Promotions" ? "promotion" : "image",
+      title: slideTitle,
+      description,
+      badge: category === "Promotions" ? "LIMITED TIME" : "THE NEW COLLECTION",
+      media: { url: image ? photo(image) : "", alt: name },
+      style: {
+        background,
+        overlay: image
+          ? newDesign
+            ? [0.18, 0.28, 0.36][variation % 3]
+            : 0.22
+          : 0,
+        heading: {
+          color: isText ? "#28372f" : "#ffffff",
+          fontSize: headingSize,
+        },
+        description: { color: isText ? "#526257" : "#ffffff" },
+        inheritTypography: !newDesign && !isText,
+        position,
       },
-      description: { color: isText ? "#526257" : "#ffffff" },
-      inheritTypography: !newDesign && !isText,
-      position,
-    },
-    primaryButton: { label: isText ? "" : "Explore collection", url: "" },
-  });
+      primaryButton: { label: isText ? "" : "Explore collection", url: "" },
+    });
   return {
     _id: id,
     name,
     category,
     thumbnail: image ? thumbnail(image) : "",
+    // Every template starts as a one-at-a-time Slide carousel; Fade and
+    // Multi-item remain available in Slider settings.
     settings: settingsSchema.parse({
-      effect: multi
-        ? "multi-item"
-        : newDesign
-          ? ["slide", "fade", "crossfade"][variation % 3]
-          : "slide",
+      effect: "slide",
       radius: newDesign ? [0, 8, 16, 24][variation % 4] : 12,
     }),
     responsiveSettings: responsiveSchema.parse({
       desktop: {
-        slidesPerView: multi ? 3 : 1,
         height:
           id === "full-screen"
             ? 700
@@ -697,7 +697,6 @@ export const starterTemplates: SliderTemplate[] = [
         alignment: position,
       },
       tablet: {
-        slidesPerView: multi ? 2 : 1,
         height: 400,
         gap: 16,
         alignment: position,
@@ -706,11 +705,11 @@ export const starterTemplates: SliderTemplate[] = [
     }),
     slides: multi
       ? [
-          slide,
-          { ...slide, _id: `${id}-slide-2`, title: "Made to be enjoyed." },
-          { ...slide, _id: `${id}-slide-3`, title: "Find your everyday." },
+          makeSlide("", title),
+          makeSlide("-2", "Made to be enjoyed."),
+          makeSlide("-3", "Find your everyday."),
         ]
-      : [slide],
+      : [makeSlide("", title), makeSlide("-2", "Made to be enjoyed.")],
   };
 });
 export function templateToSlider(

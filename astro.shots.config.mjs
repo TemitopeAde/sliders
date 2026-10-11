@@ -15,8 +15,13 @@ export default defineConfig({
       alias: {
         "@wix/essentials": `${root}wix-essentials.ts`,
         "@wix/dashboard": `${root}wix-dashboard.ts`,
+        "@wix/editor": `${root}wix-editor.ts`,
+        "@wix/data": `${root}wix-data.ts`,
       },
     },
+    server: {
+      cors: true
+    }
   },
   devToolbar: { enabled: false },
   server: { host: "127.0.0.1", port: 4333 },

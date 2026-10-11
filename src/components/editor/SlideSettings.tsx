@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { dashboard } from "@wix/dashboard";
 import { toast } from "sonner";
-import { ImagePlus, Upload } from "lucide-react";
+import { ImagePlus, Upload, RefreshCw, Trash2, Film } from "lucide-react";
 import { uploadSlideMedia } from "../../lib/wix/upload-slide-media";
 import {
   slideSchema,
@@ -14,7 +14,8 @@ import { LayersPanel } from "./LayersPanel";
 import { VisibilitySettings } from "./VisibilitySettings";
 import { ProductPicker } from "../forms/ProductPicker";
 import { Button } from "../ui/button";
-import { Choice } from "../forms/Fields";
+import { Choice, InfoTip } from "../forms/Fields";
+import { slideHelp } from "../../lib/slider/editor-help";
 const styleLabels = {
   gradient: "Gradient end color",
   gradientAngle: "Gradient angle (°)",
@@ -89,6 +90,39 @@ export function SlideSettings({
       if (fileInput.current) fileInput.current.value = "";
     }
   };
+  const kind = slide.type === "video" ? "video" : "image";
+  const pickFromWix = async (
+    category: "IMAGE" | "VIDEO",
+    apply: (file: { url: string; name?: string }) => void,
+  ) => {
+    try {
+      const result = await dashboard.openMediaManager({
+        category,
+        multiSelect: false,
+      });
+      const file = result?.items[0];
+      if (file?.url) apply({ url: file.url, name: file.displayName });
+    } catch (e) {
+      toast.error(
+        e instanceof Error
+          ? e.message
+          : "Open the editor inside Wix to use Media Manager.",
+      );
+    }
+  };
+  const chooseMedia = () =>
+    pickFromWix(slide.type === "video" ? "VIDEO" : "IMAGE", (file) =>
+      set({
+        ...slide,
+        media: { ...slide.media, url: file.url, alt: file.name ?? slide.title },
+      }),
+    );
+  const removeMedia = () => {
+    set({ ...slide, media: { ...slide.media, url: "", alt: "", poster: "" } });
+    toast.success(
+      `${kind === "video" ? "Video" : "Image"} removed — use Undo to restore it`,
+    );
+  };
   const tabs = [
     "Content",
     "Media",
@@ -103,6 +137,7 @@ export function SlideSettings({
     <div className="space-y-5">
       <Choice
         label="Slide settings"
+        tip="Choose which settings to edit for the selected slide. Changes apply to this slide only."
         value={tab}
         options={tabs}
         onChange={setTab}
@@ -119,6 +154,7 @@ export function SlideSettings({
             value={slide}
             only={["title"]}
             labels={{ title: "Slide name" }}
+            hints={slideHelp}
             onChange={set}
           />
           {slide.type !== "product" && (
@@ -139,6 +175,8 @@ export function SlideSettings({
               />
               <SchemaFields
                 schema={productSlideSchema.shape.productFields}
+                hints={slideHelp}
+                path="productFields"
                 value={slide.productFields}
                 onChange={(v) => set({ ...slide, productFields: v })}
               />
@@ -156,15 +194,99 @@ export function SlideSettings({
             aria-label={`Upload ${slide.type === "video" ? "video" : "image"}`}
             onChange={(event) => void uploadFile(event.target.files?.[0])}
           />
-          <Button
-            variant="outline"
-            className="w-full"
-            disabled={uploading}
-            onClick={() => fileInput.current?.click()}
-          >
-            <Upload size={16} />
-            {uploading ? `Uploading ${progress}%` : "Upload to Wix Media"}
-          </Button>
+          {slide.media.url ? (
+            <div className="rounded-lg overflow-hidden border bg-white">
+              <div className="bg-gray-900/5">
+                {slide.type === "video" ? (
+                  <video
+                    key={slide.media.url}
+                    src={slide.media.url}
+                    poster={slide.media.poster || undefined}
+                    controls
+                    preload="metadata"
+                    className="w-full max-h-48 object-contain"
+                  />
+                ) : (
+                  <img
+                    src={slide.media.url}
+                    alt={slide.media.alt || slide.title}
+                    className="w-full max-h-48 object-contain"
+                  />
+                )}
+              </div>
+              <div className="grid grid-cols-3 border-t divide-x">
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => void chooseMedia()}
+                  className="py-2 text-[11px] flex flex-col items-center gap-1 text-gray-600 hover:bg-gray-50 hover:text-blue-600 disabled:opacity-50"
+                >
+                  <RefreshCw size={14} />
+                  Replace
+                </button>
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => fileInput.current?.click()}
+                  className="py-2 text-[11px] flex flex-col items-center gap-1 text-gray-600 hover:bg-gray-50 hover:text-blue-600 disabled:opacity-50"
+                >
+                  <Upload size={14} />
+                  {uploading ? `${progress}%` : "Upload new"}
+                </button>
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={removeMedia}
+                  className="py-2 text-[11px] flex flex-col items-center gap-1 text-gray-600 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                >
+                  <Trash2 size={14} />
+                  Remove
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="border-2 border-dashed rounded-lg p-5 text-center"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                void uploadFile(e.dataTransfer.files[0]);
+              }}
+            >
+              <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mx-auto mb-2">
+                {kind === "video" ? (
+                  <Film size={18} />
+                ) : (
+                  <ImagePlus size={18} />
+                )}
+              </div>
+              <p className="text-xs font-medium mb-1">
+                No {kind} on this slide
+              </p>
+              <p className="muted text-[11px] mb-3">
+                Drop a file here, upload one, or pick from Wix Media.
+              </p>
+              <div className="flex flex-col gap-2">
+                <Button
+                  size="sm"
+                  disabled={uploading}
+                  onClick={() => fileInput.current?.click()}
+                >
+                  <Upload size={14} />
+                  {uploading ? `Uploading ${progress}%` : `Upload ${kind}`}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={uploading}
+                  onClick={() => void chooseMedia()}
+                >
+                  <ImagePlus size={14} />
+                  Choose from Wix Media
+                </Button>
+              </div>
+            </div>
+          )}
           {uploading && (
             <progress
               className="w-full"
@@ -173,104 +295,87 @@ export function SlideSettings({
               aria-label="Media upload progress"
             />
           )}
-          <Button
-            variant="outline"
-            className="w-full"
-            disabled={uploading}
-            onClick={async () => {
-              try {
-                const result = await dashboard.openMediaManager({
-                  category: slide.type === "video" ? "VIDEO" : "IMAGE",
-                  multiSelect: false,
-                });
-                const file = result?.items[0];
-                if (file?.url)
-                  set({
-                    ...slide,
-                    media: {
-                      ...slide.media,
-                      url: file.url,
-                      alt: file.displayName ?? slide.title,
-                    },
-                  });
-              } catch (e) {
-                toast.error(
-                  e instanceof Error
-                    ? e.message
-                    : "Open the editor inside Wix to use Media Manager.",
-                );
-              }
-            }}
-          >
-            <ImagePlus size={16} />
-            Choose from Wix Media
-          </Button>
-          {slide.media.url && (
-            <div className="rounded-lg overflow-hidden border">
-              {slide.type === "video" ? (
-                <video
-                  src={slide.media.url}
-                  controls
-                  preload="metadata"
-                  className="w-full"
+          {slide.type === "video" && slide.media.url && (
+            <div>
+              <div className="flex items-center gap-1 mb-[7px]">
+                <span className="field-label mb-0!">Poster image</span>
+                <InfoTip
+                  label="Poster image"
+                  text={slideHelp["media.poster"] ?? ""}
                 />
-              ) : (
-                <img
-                  src={slide.media.url}
-                  alt={slide.media.alt || slide.title}
-                  className="w-full"
-                />
-              )}
+              </div>
+              <div className="flex items-center gap-3 border rounded-lg p-2">
+                <div className="w-16 h-10 rounded bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                  {slide.media.poster ? (
+                    <img
+                      src={slide.media.poster}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <ImagePlus size={14} className="text-gray-400" />
+                  )}
+                </div>
+                <span className="text-[11px] text-gray-500 flex-1">
+                  {slide.media.poster
+                    ? "Shown before the video plays"
+                    : "No poster yet"}
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs"
+                  onClick={() =>
+                    void pickFromWix("IMAGE", (file) =>
+                      set({
+                        ...slide,
+                        media: { ...slide.media, poster: file.url },
+                      }),
+                    )
+                  }
+                >
+                  {slide.media.poster ? "Replace" : "Choose"}
+                </Button>
+                {slide.media.poster && (
+                  <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    aria-label="Remove poster"
+                    className="hover:text-red-600"
+                    onClick={() =>
+                      set({ ...slide, media: { ...slide.media, poster: "" } })
+                    }
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                )}
+              </div>
             </div>
           )}
-          {slide.type === "video" && (
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={async () => {
-                try {
-                  const result = await dashboard.openMediaManager({
-                    category: "IMAGE",
-                    multiSelect: false,
-                  });
-                  const poster = result?.items[0];
-                  if (poster?.url)
-                    set({
-                      ...slide,
-                      media: { ...slide.media, poster: poster.url },
-                    });
-                } catch (e) {
-                  toast.error(
-                    e instanceof Error
-                      ? e.message
-                      : "Could not choose a poster.",
-                  );
-                }
-              }}
-            >
-              Choose video poster from Wix Media
-            </Button>
+          {slide.media.url && (
+            <SchemaFields
+              schema={imageSlideSchema.shape.media}
+              hints={slideHelp}
+              path="media"
+              value={slide.media}
+              exclude={
+                slide.type === "video"
+                  ? ["url", "poster"]
+                  : [
+                      "url",
+                      "autoplay",
+                      "muted",
+                      "loop",
+                      "controls",
+                      "playsInline",
+                      "pauseInactive",
+                      "resumeActive",
+                      "poster",
+                    ]
+              }
+              onChange={(v) => set({ ...slide, media: v })}
+            />
           )}
-          <SchemaFields
-            schema={imageSlideSchema.shape.media}
-            value={slide.media}
-            exclude={
-              slide.type === "video"
-                ? ["url", "poster"]
-                : [
-                    "url",
-                    "autoplay",
-                    "muted",
-                    "loop",
-                    "controls",
-                    "playsInline",
-                    "pauseInactive",
-                    "resumeActive",
-                    "poster",
-                  ]
-            }
-            onChange={(v) => set({ ...slide, media: v })}
-          />
         </>
       )}
       {tab === "Layout" && (
@@ -280,6 +385,8 @@ export function SlideSettings({
             value={slide.style}
             only={["padding"]}
             labels={{ padding: "Edge spacing (px)" }}
+            hints={slideHelp}
+            path="style"
             onChange={(v) => set({ ...slide, style: v })}
           />
           <p className="muted">
@@ -338,6 +445,8 @@ export function SlideSettings({
               value={slide.style}
               only={group.only}
               labels={styleLabels}
+              hints={slideHelp}
+              path="style"
               onChange={(v) => set({ ...slide, style: v })}
             />
           </section>
@@ -345,6 +454,8 @@ export function SlideSettings({
       {tab === "Animation" && (
         <SchemaFields
           schema={imageSlideSchema.shape.animation}
+          hints={slideHelp}
+          path="animation"
           value={slide.animation}
           onChange={(v) => set({ ...slide, animation: v })}
         />
@@ -352,6 +463,8 @@ export function SlideSettings({
       {tab === "Responsive" && (
         <SchemaFields
           schema={imageSlideSchema.shape.responsive}
+          hints={slideHelp}
+          path="responsive"
           value={slide.responsive}
           onChange={(v) => set({ ...slide, responsive: v })}
         />
@@ -365,6 +478,7 @@ export function SlideSettings({
             schema={schema}
             value={slide}
             only={["enabled"]}
+            hints={slideHelp}
             onChange={set}
           />
           <div>

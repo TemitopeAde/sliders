@@ -14,7 +14,7 @@ import {
 } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { createSlide, slideSchema, type Slide } from "../../schemas/slider";
+import { createSlide, type Slide } from "../../schemas/slider";
 import { uploadSlideMedia } from "../../lib/wix/upload-slide-media";
 import { api } from "../../lib/api/client";
 import { ProductPicker } from "./ProductPicker";
@@ -160,8 +160,7 @@ export function AddSlideDialog({
               form.setError("title", { message: "Select a product first" });
               return;
             }
-            const slide = slideSchema.parse({
-              ...createSlide(type),
+            const slide = createSlide(type, {
               title: data.title,
               description: data.description,
               media: { url: media.url, alt: media.name || data.title },

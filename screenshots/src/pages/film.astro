@@ -1,0 +1,572 @@
+---
+// Launch-film stage: real app UI in iframes, moved by a scripted camera.
+// Driven by launch/record-slideshow.mjs through window.__film.
+---
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Slide show — Launch film</title>
+    <style is:inline>
+      :root {
+        --ink: #0b1020;
+        --blue: #4263eb;
+        --ease: cubic-bezier(0.65, 0, 0.25, 1);
+      }
+      * { box-sizing: border-box; }
+      /* A fixed body can't make the page scrollable, so an off-stage cursor
+         or zoomed rig never lets the stage scroll sideways. */
+      body { position: fixed; inset: 0; }
+      html, body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        /* clip, not hidden: scrollIntoView inside an iframe must never
+           scroll the stage itself. */
+        overflow: clip;
+        background: var(--ink);
+        font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+        color: white;
+      }
+      .backdrop {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(1100px 700px at 18% 12%, #2a3a8a 0%, transparent 60%),
+          radial-gradient(900px 600px at 88% 92%, #3b1f6e 0%, transparent 60%),
+          linear-gradient(160deg, #0b1020, #121a3a 55%, #0b1020);
+      }
+      .backdrop::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(#ffffff08 1px, transparent 1px),
+          linear-gradient(90deg, #ffffff08 1px, transparent 1px);
+        background-size: 64px 64px;
+        mask-image: radial-gradient(circle at 50% 50%, black 30%, transparent 75%);
+      }
+      .layer {
+        position: absolute;
+        inset: 0;
+        overflow: clip;
+        perspective: 2600px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 700ms var(--ease);
+      }
+      .layer.on { opacity: 1; pointer-events: auto; }
+      .rig {
+        position: absolute;
+        left: 0;
+        top: 0;
+        transform-origin: 0 0;
+        transform-style: preserve-3d;
+      }
+      .screen {
+        position: relative;
+        border-radius: 18px;
+        overflow: hidden;
+        background: white;
+        box-shadow:
+          0 60px 120px -30px #000c,
+          0 0 0 1px #ffffff1f;
+      }
+      .screen iframe {
+        display: block;
+        border: 0;
+        width: 100%;
+        height: 100%;
+        background: white;
+      }
+      /* Device mockups for the live-site finale. */
+      .devices .rig { transform-style: preserve-3d; }
+      .device {
+        position: absolute;
+        border-radius: 22px;
+        padding: 14px;
+        background: #11151f;
+        box-shadow: 0 50px 100px -30px #000d, 0 0 0 1px #ffffff26;
+        transform-style: preserve-3d;
+        transition: transform 1600ms var(--ease);
+      }
+      .device iframe {
+        display: block;
+        border: 0;
+        border-radius: 12px;
+        background: white;
+        transform-origin: 0 0;
+      }
+      .device.phone { border-radius: 44px; padding: 12px; }
+      .device.phone iframe { border-radius: 34px; }
+      .caption {
+        position: absolute;
+        left: 72px;
+        bottom: 64px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 18px 28px 18px 20px;
+        border-radius: 18px;
+        background: #0b1020cc;
+        backdrop-filter: blur(18px);
+        box-shadow: 0 20px 50px -20px #000c, inset 0 0 0 1px #ffffff1c;
+        font-size: 30px;
+        font-weight: 600;
+        letter-spacing: -0.5px;
+        opacity: 0;
+        transform: translateY(24px);
+        transition: opacity 450ms var(--ease), transform 450ms var(--ease);
+        z-index: 20;
+      }
+      .caption.on { opacity: 1; transform: none; }
+      .caption .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #7c93ff;
+        box-shadow: 0 0 18px #7c93ff;
+      }
+      .caption small {
+        display: block;
+        font-size: 17px;
+        font-weight: 500;
+        color: #b8c2e8;
+        letter-spacing: 0;
+        margin-top: 2px;
+      }
+      .card {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        z-index: 30;
+        pointer-events: none;
+      }
+      .logo {
+        display: inline-flex;
+        align-items: center;
+        gap: 28px;
+      }
+      .mark {
+        width: 132px;
+        height: 132px;
+        border-radius: 36px;
+        background: linear-gradient(145deg, #5b7bff, #3451d1);
+        display: grid;
+        place-items: center;
+        box-shadow: 0 30px 80px -20px #4263ebcc, inset 0 2px 0 #ffffff40;
+      }
+      .word {
+        font-size: 124px;
+        font-weight: 700;
+        letter-spacing: -5px;
+      }
+      .tag {
+        margin-top: 26px;
+        font-size: 30px;
+        color: #b8c2e8;
+        letter-spacing: 8px;
+        text-transform: uppercase;
+      }
+      .reveal > * {
+        opacity: 0;
+        transform: translateY(40px) scale(0.96);
+        filter: blur(12px);
+        transition: all 1100ms var(--ease);
+      }
+      .reveal.on > * { opacity: 1; transform: none; filter: none; }
+      .reveal.on > *:nth-child(2) { transition-delay: 350ms; }
+      .reveal.on > *:nth-child(3) { transition-delay: 700ms; }
+      .sweep {
+        position: absolute;
+        inset: -20%;
+        background: linear-gradient(100deg, transparent 40%, #ffffff22 50%, transparent 60%);
+        transform: translateX(-100%);
+      }
+      .sweep.go { transition: transform 1800ms var(--ease); transform: translateX(100%); }
+      .pill {
+        display: inline-block;
+        margin-top: 44px;
+        padding: 16px 30px;
+        border-radius: 999px;
+        background: white;
+        color: var(--ink);
+        font-size: 26px;
+        font-weight: 600;
+      }
+      .flash {
+        position: absolute;
+        inset: 0;
+        background: white;
+        opacity: 0;
+        z-index: 40;
+        pointer-events: none;
+        transition: opacity 180ms linear;
+      }
+      .flash.on { opacity: 0.18; }
+      .cursor {
+        position: absolute;
+        width: 34px;
+        height: 34px;
+        margin: -6px 0 0 -6px;
+        z-index: 25;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 250ms linear;
+        filter: drop-shadow(0 6px 10px #0008);
+      }
+      .cursor.on { opacity: 1; }
+      .cursor .ring {
+        position: absolute;
+        left: -14px;
+        top: -14px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 3px solid #7c93ff;
+        opacity: 0;
+        transform: scale(0.4);
+      }
+      .cursor.click .ring { animation: ping 520ms var(--ease); }
+      @keyframes ping {
+        0% { opacity: 1; transform: scale(0.4); }
+        100% { opacity: 0; transform: scale(1.6); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="backdrop"></div>
+
+    <div class="card reveal" id="title">
+      <div>
+        <div class="logo">
+          <div class="mark">
+            <svg width="74" height="74" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
+          </div>
+          <div class="word">Slide show</div>
+        </div>
+        <div class="tag">Slideshows for Wix</div>
+      </div>
+      <div class="sweep" id="sweep"></div>
+    </div>
+
+    <div class="layer" id="app">
+      <div class="rig" id="app-rig">
+        <div class="screen" style="width:1920px;height:1080px">
+          <iframe id="app-frame" src="/#overview" title="Dashboard"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer" id="panel">
+      <div class="rig" id="panel-rig">
+        <div class="screen" style="width:1920px;height:1080px">
+          <iframe id="panel-frame" src="/?scene=panel" title="Site editor"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <div class="layer devices" id="site">
+      <div class="rig" id="site-rig" style="width:1920px;height:1080px">
+        <div class="device" id="laptop" style="left:170px;top:150px">
+          <iframe id="site-laptop" src="/?scene=site" title="Desktop site"
+            style="width:1440px;height:900px;transform:scale(0.74);margin-right:-374px;margin-bottom:-234px"></iframe>
+        </div>
+        <div class="device" id="tablet" style="left:1150px;top:250px">
+          <iframe id="site-tablet" src="/?scene=site" title="Tablet site"
+            style="width:820px;height:1180px;transform:scale(0.5);margin-right:-410px;margin-bottom:-590px"></iframe>
+        </div>
+        <div class="device phone" id="phone" style="left:1540px;top:420px">
+          <iframe id="site-phone" src="/?scene=site" title="Phone site"
+            style="width:390px;height:844px;transform:scale(0.6);margin-right:-156px;margin-bottom:-338px"></iframe>
+        </div>
+      </div>
+    </div>
+
+    <div class="card reveal" id="end">
+      <div>
+        <div class="logo">
+          <div class="mark">
+            <svg width="74" height="74" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
+          </div>
+          <div class="word">Slide show</div>
+        </div>
+        <div class="tag">Image · Video · Product slideshows</div>
+        <div><span class="pill">Available on the Wix App Market</span></div>
+      </div>
+    </div>
+
+    <div class="caption" id="caption"><span class="dot"></span><div id="caption-text"></div></div>
+    <div class="cursor" id="cursor">
+      <svg width="34" height="34" viewBox="0 0 24 24"><path d="M4 2l16 9.5-7 1.5-3.5 6.5z" fill="white" stroke="#0b1020" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      <span class="ring"></span>
+    </div>
+    <div class="flash" id="flash"></div>
+
+    <script is:inline>
+      const $ = (id) => document.getElementById(id);
+      const rigs = { app: $("app-rig"), panel: $("panel-rig"), site: $("site-rig") };
+      const pose = {};
+      const clock = { t0: 0 };
+
+      /** Point the camera at (x, y) of a 1920×1080 screen, with zoom and tilt. */
+      function transformFor({ x = 960, y = 540, s = 1, rx = 0, ry = 0, rz = 0, z = 0 }) {
+        // Zoomed, untilted shots stay inside the screen instead of showing its edge.
+        if (s >= 1 && !rx && !ry) {
+          x = Math.min(1920 - 960 / s, Math.max(960 / s, x));
+          y = Math.min(1080 - 540 / s, Math.max(540 / s, y));
+        }
+        return `translate(960px, 540px) translateZ(${z}px) rotateX(${rx}deg) rotateY(${ry}deg) rotateZ(${rz}deg) scale(${s}) translate(${-x}px, ${-y}px)`;
+      }
+      function shot(name, view, ms = 1200, ease = "cubic-bezier(0.65, 0, 0.25, 1)") {
+        const rig = rigs[name];
+        pose[name] = { ...(pose[name] ?? {}), ...view };
+        rig.style.transition = ms ? `transform ${ms}ms ${ease}` : "none";
+        rig.style.transform = transformFor(pose[name]);
+      }
+      function show(name) {
+        for (const id of ["app", "panel", "site"]) $(id).classList.toggle("on", id === name);
+        for (const id of ["title", "end"]) $(id).classList.toggle("on", id === name);
+        if (name === "title") {
+          const sweep = $("sweep");
+          sweep.classList.remove("go");
+          void sweep.offsetWidth;
+          setTimeout(() => sweep.classList.add("go"), 900);
+        }
+        flash();
+      }
+      function flash() {
+        $("flash").classList.add("on");
+        setTimeout(() => $("flash").classList.remove("on"), 160);
+      }
+      function caption(text, sub) {
+        const el = $("caption");
+        if (!text) return el.classList.remove("on");
+        el.classList.remove("on");
+        setTimeout(() => {
+          $("caption-text").innerHTML = sub ? `${text}<small>${sub}</small>` : text;
+          el.classList.add("on");
+        }, el.classList.contains("on") ? 260 : 0);
+      }
+      /** Screen point (in a rig's 1920×1080 space) → stage point, for the cursor. */
+      function project(name, x, y) {
+        const rig = rigs[name];
+        const m = new DOMMatrix(getComputedStyle(rig).transform);
+        const p = m.transformPoint(new DOMPoint(x, y, 0, 1));
+        return { x: p.x / p.w, y: p.y / p.w };
+      }
+      function cursor(name, x, y, ms = 700) {
+        const el = $("cursor");
+        const p = project(name, x, y);
+        el.classList.add("on");
+        el.style.transition = `opacity 250ms linear, left ${ms}ms var(--ease), top ${ms}ms var(--ease)`;
+        el.style.left = `${p.x}px`;
+        el.style.top = `${p.y}px`;
+      }
+      function click() {
+        const el = $("cursor");
+        el.classList.remove("click");
+        void el.offsetWidth;
+        el.classList.add("click");
+      }
+      function hideCursor() { $("cursor").classList.remove("on"); }
+      function devices(layout) {
+        const set = (id, t) => ($(id).style.transform = t);
+        if (layout === "spread") {
+          set("laptop", "translate3d(0,0,0) rotateY(14deg) rotateX(4deg)");
+          set("tablet", "translate3d(-40px,0,120px) rotateY(-10deg) rotateX(4deg)");
+          set("phone", "translate3d(-60px,0,220px) rotateY(-22deg) rotateX(4deg)");
+        } else {
+          set("laptop", "translate3d(-300px,80px,-200px) rotateY(30deg)");
+          set("tablet", "translate3d(300px,120px,-200px) rotateY(-30deg)");
+          set("phone", "translate3d(500px,200px,-100px) rotateY(-40deg)");
+        }
+      }
+
+      // ---- Original score, rendered offline so audio is exact and license-free.
+      async function renderWav(cues, duration) {
+        const sr = 44100;
+        const ctx = new OfflineAudioContext(2, Math.ceil(sr * duration), sr);
+        const master = ctx.createDynamicsCompressor();
+        master.threshold.value = -16;
+        master.ratio.value = 3;
+        const out = ctx.createGain();
+        out.gain.setValueAtTime(0.0001, 0);
+        out.gain.exponentialRampToValueAtTime(0.9, 2.5);
+        out.gain.setValueAtTime(0.9, duration - 4);
+        out.gain.exponentialRampToValueAtTime(0.0001, duration);
+        master.connect(out).connect(ctx.destination);
+        const verb = ctx.createConvolver();
+        const ir = ctx.createBuffer(2, sr * 2.6, sr);
+        for (let c = 0; c < 2; c++) {
+          const d = ir.getChannelData(c);
+          for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+        }
+        verb.buffer = ir;
+        const wet = ctx.createGain();
+        wet.gain.value = 0.28;
+        verb.connect(wet).connect(master);
+        const noise = ctx.createBuffer(1, sr, sr);
+        const nd = noise.getChannelData(0);
+        for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+        const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
+        const beat = 60 / 100;
+        const bar = beat * 4;
+        // Cmaj9 · Am9 · Fmaj9 · G6/9 — bright, optimistic, product-launch feel.
+        const chords = [
+          [48, 55, 64, 67, 71, 74],
+          [45, 52, 60, 64, 67, 71],
+          [41, 48, 57, 60, 64, 67],
+          [43, 50, 59, 62, 64, 69],
+        ];
+        const pad = (notes, t, len) => {
+          const f = ctx.createBiquadFilter();
+          f.type = "lowpass";
+          f.frequency.setValueAtTime(700, t);
+          f.frequency.linearRampToValueAtTime(1900, t + len * 0.6);
+          f.frequency.linearRampToValueAtTime(900, t + len);
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.05, t + 0.9);
+          g.gain.setValueAtTime(0.05, t + len - 0.6);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + len + 0.8);
+          f.connect(g);
+          g.connect(master);
+          g.connect(verb);
+          for (const n of notes.slice(1))
+            for (const det of [-7, 7]) {
+              const o = ctx.createOscillator();
+              o.type = "sawtooth";
+              o.frequency.value = hz(n + 12);
+              o.detune.value = det;
+              o.connect(f);
+              o.start(t);
+              o.stop(t + len + 1);
+            }
+        };
+        const bass = (n, t, len) => {
+          const o = ctx.createOscillator();
+          o.type = "triangle";
+          o.frequency.value = hz(n - 12);
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.32, t + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+          o.connect(g).connect(master);
+          o.start(t);
+          o.stop(t + len + 0.05);
+        };
+        const kick = (t) => {
+          const o = ctx.createOscillator();
+          o.frequency.setValueAtTime(130, t);
+          o.frequency.exponentialRampToValueAtTime(42, t + 0.22);
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(0.75, t);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+          o.connect(g).connect(master);
+          o.start(t);
+          o.stop(t + 0.4);
+        };
+        const hat = (t, v = 0.06) => {
+          const s = ctx.createBufferSource();
+          s.buffer = noise;
+          const f = ctx.createBiquadFilter();
+          f.type = "highpass";
+          f.frequency.value = 8000;
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(v, t);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+          s.connect(f).connect(g).connect(master);
+          s.start(t, Math.random() * 0.5, 0.08);
+        };
+        const pluck = (n, t) => {
+          const o = ctx.createOscillator();
+          o.type = "square";
+          o.frequency.value = hz(n);
+          const f = ctx.createBiquadFilter();
+          f.type = "lowpass";
+          f.frequency.setValueAtTime(3200, t);
+          f.frequency.exponentialRampToValueAtTime(500, t + 0.25);
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(0.045, t);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+          o.connect(f).connect(g);
+          g.connect(master);
+          g.connect(verb);
+          o.start(t);
+          o.stop(t + 0.32);
+        };
+        const whoosh = (t) => {
+          const s = ctx.createBufferSource();
+          s.buffer = noise;
+          s.loop = true;
+          const f = ctx.createBiquadFilter();
+          f.type = "bandpass";
+          f.Q.value = 1.4;
+          f.frequency.setValueAtTime(400, t - 0.5);
+          f.frequency.exponentialRampToValueAtTime(5000, t);
+          f.frequency.exponentialRampToValueAtTime(900, t + 0.4);
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(0.0001, t - 0.5);
+          g.gain.exponentialRampToValueAtTime(0.16, t - 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+          s.connect(f).connect(g);
+          g.connect(master);
+          g.connect(verb);
+          s.start(Math.max(0, t - 0.5));
+          s.stop(t + 0.5);
+        };
+        const groove = cues.find((c) => c.groove)?.t ?? 6;
+        const arpFrom = cues.find((c) => c.arp)?.t ?? 14;
+        const outro = cues.find((c) => c.outro)?.t ?? duration - 5;
+        for (let t = 0, i = 0; t < duration; t += bar * 2, i++) {
+          const chord = chords[i % chords.length];
+          pad(chord, t, bar * 2);
+          if (t >= groove - 0.01 && t < outro)
+            for (let b = 0; b < 8; b++) bass(chord[0], t + b * beat, beat * 0.9);
+        }
+        for (let t = groove; t < outro; t += beat) {
+          kick(t);
+          hat(t + beat / 2);
+          if (t >= arpFrom) hat(t + beat / 4, 0.025);
+        }
+        for (let t = arpFrom, k = 0; t < outro; t += beat / 2, k++) {
+          const chord = chords[Math.floor(t / (bar * 2)) % chords.length];
+          pluck(chord[2 + (k % 4)] + 12, t);
+        }
+        for (const c of cues) if (c.cut) whoosh(c.t);
+        // Final chord bloom on the end card.
+        pad(chords[0], outro, duration - outro);
+        const buf = await ctx.startRendering();
+        const L = buf.getChannelData(0);
+        const R = buf.getChannelData(1);
+        const bytes = new DataView(new ArrayBuffer(44 + L.length * 4));
+        const str = (o, s) => [...s].forEach((ch, i) => bytes.setUint8(o + i, ch.charCodeAt(0)));
+        str(0, "RIFF");
+        bytes.setUint32(4, 36 + L.length * 4, true);
+        str(8, "WAVEfmt ");
+        bytes.setUint32(16, 16, true);
+        bytes.setUint16(20, 1, true);
+        bytes.setUint16(22, 2, true);
+        bytes.setUint32(24, sr, true);
+        bytes.setUint32(28, sr * 4, true);
+        bytes.setUint16(32, 4, true);
+        bytes.setUint16(34, 16, true);
+        str(36, "data");
+        bytes.setUint32(40, L.length * 4, true);
+        for (let i = 0, o = 44; i < L.length; i++, o += 4) {
+          bytes.setInt16(o, Math.max(-1, Math.min(1, L[i])) * 0x7fff, true);
+          bytes.setInt16(o + 2, Math.max(-1, Math.min(1, R[i])) * 0x7fff, true);
+        }
+        const u8 = new Uint8Array(bytes.buffer);
+        let bin = "";
+        for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode(...u8.subarray(i, i + 0x8000));
+        return btoa(bin);
+      }
+
+      window.__film = { shot, show, caption, cursor, click, hideCursor, devices, flash, renderWav, project };
+      for (const name of Object.keys(rigs)) shot(name, {}, 0);
+    </script>
+  </body>
+</html>

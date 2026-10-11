@@ -43,6 +43,10 @@ import {
   FontField,
   Section,
 } from "./panel-controls";
+import {
+  responsiveHelp,
+  settingsHelp,
+} from "../../../../lib/slider/settings-help";
 
 type Tab = "behavior" | "design" | "layout" | "text";
 type TextStyle = keyof SliderSettings["typography"];
@@ -66,7 +70,6 @@ const PAGINATION = [
   { id: "bullets", label: "Dots" },
   { id: "fraction", label: "Numbers (1 / 5)" },
   { id: "progressbar", label: "Progress bar" },
-  { id: "none", label: "Hidden" },
 ] as const;
 const ALIGNMENTS = [
   "top-left",
@@ -248,6 +251,8 @@ export default function Panel() {
 
   const missing =
     !loading && sliderId && !sliders.some((s) => s.id === sliderId);
+  const dotsShown =
+    !!settings?.showPagination && settings.pagination !== "none";
   const ready = !!(sliderId && settings && responsive && !missing);
 
   return (
@@ -329,12 +334,14 @@ export default function Panel() {
                     <Section title="Transition">
                       <SelectField
                         label="Effect"
+                        info={settingsHelp.effect}
                         value={settings.effect}
                         options={[...EFFECTS]}
                         onChange={(v) => set("effect", v)}
                       />
                       <RangeField
                         label="Transition speed"
+                        info={settingsHelp.speed}
                         value={settings.speed}
                         min={0}
                         max={5000}
@@ -344,6 +351,7 @@ export default function Panel() {
                       />
                       <ChoiceField
                         label="Direction"
+                        info={settingsHelp.direction}
                         value={settings.direction}
                         options={[
                           { id: "horizontal", label: "Horizontal" },
@@ -353,18 +361,19 @@ export default function Panel() {
                       />
                       <ToggleField
                         label="Loop slides"
-                        info="After the last slide, continue from the first one."
+                        info={settingsHelp.loop}
                         checked={settings.loop}
                         onChange={(v) => set("loop", v)}
                       />
                       <ToggleField
                         label="Center active slide"
+                        info={settingsHelp.centered}
                         checked={settings.centered}
                         onChange={(v) => set("centered", v)}
                       />
                       <ToggleField
                         label="Auto height"
-                        info="Resize the slider to fit each slide's content."
+                        info={settingsHelp.autoHeight}
                         checked={settings.autoHeight}
                         onChange={(v) => set("autoHeight", v)}
                       />
@@ -372,6 +381,7 @@ export default function Panel() {
                     <Section title="Autoplay">
                       <ToggleField
                         label="Play automatically"
+                        info={settingsHelp.autoplay}
                         checked={settings.autoplay}
                         onChange={(v) => set("autoplay", v)}
                       />
@@ -379,6 +389,7 @@ export default function Panel() {
                         <>
                           <RangeField
                             label="Time per slide"
+                            info={settingsHelp.delay}
                             value={settings.delay}
                             min={1000}
                             max={60000}
@@ -389,12 +400,13 @@ export default function Panel() {
                           />
                           <ToggleField
                             label="Pause on hover"
+                            info={settingsHelp.pauseOnHover}
                             checked={settings.pauseOnHover}
                             onChange={(v) => set("pauseOnHover", v)}
                           />
                           <ToggleField
                             label="Stop after interaction"
-                            info="Stop autoplay once a visitor swipes or clicks an arrow."
+                            info={settingsHelp.pauseOnInteraction}
                             checked={settings.pauseOnInteraction}
                             onChange={(v) => set("pauseOnInteraction", v)}
                           />
@@ -404,21 +416,25 @@ export default function Panel() {
                     <Section title="Navigation">
                       <ToggleField
                         label="Swipe on touch devices"
+                        info={settingsHelp.swipe}
                         checked={settings.swipe}
                         onChange={(v) => set("swipe", v)}
                       />
                       <ToggleField
                         label="Drag with mouse"
+                        info={settingsHelp.mouseDrag}
                         checked={settings.mouseDrag}
                         onChange={(v) => set("mouseDrag", v)}
                       />
                       <ToggleField
                         label="Keyboard arrows"
+                        info={settingsHelp.keyboard}
                         checked={settings.keyboard}
                         onChange={(v) => set("keyboard", v)}
                       />
                       <RangeField
                         label="Start at slide"
+                        info={settingsHelp.initialSlide}
                         value={settings.initialSlide + 1}
                         min={1}
                         max={Math.max(1, snapshot?.slides.length ?? 1)}
@@ -433,11 +449,13 @@ export default function Panel() {
                     <Section title="Container">
                       <ColorField
                         label="Background"
+                        info={settingsHelp.background}
                         value={settings.background}
                         onChange={(v) => set("background", v)}
                       />
                       <RangeField
                         label="Corner radius"
+                        info={settingsHelp.radius}
                         value={settings.radius}
                         min={0}
                         max={100}
@@ -446,6 +464,7 @@ export default function Panel() {
                       />
                       <ChoiceField
                         label="Shadow"
+                        info={settingsHelp.shadow}
                         value={settings.shadow}
                         options={[
                           { id: "none", label: "None" },
@@ -456,6 +475,7 @@ export default function Panel() {
                       />
                       <RangeField
                         label="Border width"
+                        info={settingsHelp.borderWidth}
                         value={settings.borderWidth}
                         min={0}
                         max={20}
@@ -466,11 +486,13 @@ export default function Panel() {
                         <>
                           <ColorField
                             label="Border color"
+                            info={settingsHelp.borderColor}
                             value={settings.borderColor}
                             onChange={(v) => set("borderColor", v)}
                           />
                           <ChoiceField
                             label="Border style"
+                            info={settingsHelp.borderStyle}
                             value={settings.borderStyle}
                             options={[
                               { id: "solid", label: "Solid" },
@@ -483,111 +505,155 @@ export default function Panel() {
                       )}
                     </Section>
                     <Section title="Arrows">
-                      <ChoiceField
-                        label="Icon"
-                        value={settings.arrowIcon}
-                        options={[
-                          { id: "chevron", label: "Chevron ›" },
-                          { id: "arrow", label: "Arrow →" },
-                        ]}
-                        onChange={(v) => set("arrowIcon", v)}
+                      <ToggleField
+                        label="Show arrows"
+                        info={settingsHelp.showArrows}
+                        checked={settings.showArrows}
+                        onChange={(v) => set("showArrows", v)}
                       />
-                      <ChoiceField
-                        label="Position"
-                        value={settings.arrowPosition}
-                        options={[
-                          { id: "inside", label: "Inside" },
-                          { id: "outside", label: "Outside" },
-                        ]}
-                        onChange={(v) => set("arrowPosition", v)}
-                      />
-                      <RangeField
-                        label="Size"
-                        value={settings.arrowSize}
-                        min={16}
-                        max={80}
-                        unit="px"
-                        onChange={(v) => set("arrowSize", v)}
-                      />
-                      <RangeField
-                        label="Roundness"
-                        value={settings.arrowRadius}
-                        min={0}
-                        max={100}
-                        unit="%"
-                        onChange={(v) => set("arrowRadius", v)}
-                      />
-                      <RangeField
-                        label="Opacity"
-                        value={settings.arrowOpacity}
-                        min={0}
-                        max={1}
-                        scale={0.01}
-                        unit="%"
-                        onChange={(v) => set("arrowOpacity", v)}
-                      />
-                      <ColorField
-                        label="Icon color"
-                        value={settings.arrowColor}
-                        onChange={(v) => set("arrowColor", v)}
-                      />
-                      <ColorField
-                        label="Background"
-                        value={settings.arrowBackground}
-                        onChange={(v) => set("arrowBackground", v)}
-                      />
-                      <ColorField
-                        label="Border"
-                        value={settings.arrowBorder}
-                        onChange={(v) => set("arrowBorder", v)}
-                      />
-                    </Section>
-                    <Section title="Pagination">
-                      <SelectField
-                        label="Style"
-                        value={settings.pagination}
-                        options={[...PAGINATION]}
-                        onChange={(v) => set("pagination", v)}
-                      />
-                      {settings.pagination !== "none" && (
+                      {settings.showArrows && (
                         <>
+                          <ColorField
+                            label="Arrow icon color"
+                            info={settingsHelp.arrowColor}
+                            value={settings.arrowColor}
+                            onChange={(v) => set("arrowColor", v)}
+                          />
+                          <ColorField
+                            label="Background"
+                            info={settingsHelp.arrowBackground}
+                            value={settings.arrowBackground}
+                            onChange={(v) => set("arrowBackground", v)}
+                          />
+                          <ColorField
+                            label="Border"
+                            info={settingsHelp.arrowBorder}
+                            value={settings.arrowBorder}
+                            onChange={(v) => set("arrowBorder", v)}
+                          />
+                          <ChoiceField
+                            label="Icon"
+                            info={settingsHelp.arrowIcon}
+                            value={settings.arrowIcon}
+                            options={[
+                              { id: "chevron", label: "Chevron ›" },
+                              { id: "arrow", label: "Arrow →" },
+                            ]}
+                            onChange={(v) => set("arrowIcon", v)}
+                          />
                           <ChoiceField
                             label="Position"
-                            value={settings.paginationPosition}
+                            info={settingsHelp.arrowPosition}
+                            value={settings.arrowPosition}
                             options={[
-                              { id: "top", label: "Top" },
-                              { id: "bottom", label: "Bottom" },
+                              { id: "inside", label: "Inside" },
+                              { id: "outside", label: "Outside" },
                             ]}
-                            onChange={(v) => set("paginationPosition", v)}
+                            onChange={(v) => set("arrowPosition", v)}
                           />
-                          <ColorField
-                            label="Color"
-                            value={settings.paginationColor}
-                            onChange={(v) => set("paginationColor", v)}
+                          <RangeField
+                            label="Size"
+                            info={settingsHelp.arrowSize}
+                            value={settings.arrowSize}
+                            min={16}
+                            max={80}
+                            unit="px"
+                            onChange={(v) => set("arrowSize", v)}
                           />
-                          <ColorField
-                            label="Active color"
-                            value={settings.paginationActiveColor}
-                            onChange={(v) => set("paginationActiveColor", v)}
+                          <RangeField
+                            label="Roundness"
+                            info={settingsHelp.arrowRadius}
+                            value={settings.arrowRadius}
+                            min={0}
+                            max={100}
+                            unit="%"
+                            onChange={(v) => set("arrowRadius", v)}
                           />
-                          {settings.pagination === "bullets" && (
+                          <RangeField
+                            label="Opacity"
+                            info={settingsHelp.arrowOpacity}
+                            value={settings.arrowOpacity}
+                            min={0}
+                            max={1}
+                            scale={0.01}
+                            unit="%"
+                            onChange={(v) => set("arrowOpacity", v)}
+                          />
+                        </>
+                      )}
+                    </Section>
+                    <Section title="Dots">
+                      <ToggleField
+                        label="Show dots"
+                        info={settingsHelp.showPagination}
+                        checked={dotsShown}
+                        onChange={(v) => {
+                          set("showPagination", v);
+                          // "Hidden" is no longer a style option; switching dots
+                          // back on for such a slider starts from plain dots.
+                          if (v && settings.pagination === "none")
+                            set("pagination", "bullets");
+                        }}
+                      />
+                      {dotsShown && (
+                        <>
+                          <SelectField
+                            label="Style"
+                            info={settingsHelp.pagination}
+                            value={settings.pagination}
+                            options={[...PAGINATION]}
+                            onChange={(v) => set("pagination", v)}
+                          />
+                          {settings.pagination !== "none" && (
                             <>
-                              <RangeField
-                                label="Dot size"
-                                value={settings.paginationSize}
-                                min={3}
-                                max={30}
-                                unit="px"
-                                onChange={(v) => set("paginationSize", v)}
+                              <ChoiceField
+                                label="Position"
+                                info={settingsHelp.paginationPosition}
+                                value={settings.paginationPosition}
+                                options={[
+                                  { id: "top", label: "Top" },
+                                  { id: "bottom", label: "Bottom" },
+                                ]}
+                                onChange={(v) => set("paginationPosition", v)}
                               />
-                              <RangeField
-                                label="Dot spacing"
-                                value={settings.paginationSpacing}
-                                min={0}
-                                max={30}
-                                unit="px"
-                                onChange={(v) => set("paginationSpacing", v)}
+                              <ColorField
+                                label="Dot color"
+                                info={settingsHelp.paginationColor}
+                                value={settings.paginationColor}
+                                onChange={(v) => set("paginationColor", v)}
                               />
+                              <ColorField
+                                label="Active dot color"
+                                info={settingsHelp.paginationActiveColor}
+                                value={settings.paginationActiveColor}
+                                onChange={(v) =>
+                                  set("paginationActiveColor", v)
+                                }
+                              />
+                              {settings.pagination === "bullets" && (
+                                <>
+                                  <RangeField
+                                    label="Dot size"
+                                    info={settingsHelp.paginationSize}
+                                    value={settings.paginationSize}
+                                    min={3}
+                                    max={30}
+                                    unit="px"
+                                    onChange={(v) => set("paginationSize", v)}
+                                  />
+                                  <RangeField
+                                    label="Dot spacing"
+                                    info={settingsHelp.paginationSpacing}
+                                    value={settings.paginationSpacing}
+                                    min={0}
+                                    max={30}
+                                    unit="px"
+                                    onChange={(v) =>
+                                      set("paginationSpacing", v)
+                                    }
+                                  />
+                                </>
+                              )}
                             </>
                           )}
                         </>
@@ -601,6 +667,7 @@ export default function Panel() {
                     <Section title="Size & spacing">
                       <RangeField
                         label="Width"
+                        info={settingsHelp.width}
                         value={settings.width}
                         min={10}
                         max={100}
@@ -609,6 +676,7 @@ export default function Panel() {
                       />
                       <RangeField
                         label="Max width"
+                        info={settingsHelp.maxWidth}
                         value={settings.maxWidth}
                         min={200}
                         max={3840}
@@ -618,6 +686,7 @@ export default function Panel() {
                       />
                       <RangeField
                         label="Min height"
+                        info={settingsHelp.minHeight}
                         value={settings.minHeight}
                         min={0}
                         max={1500}
@@ -627,6 +696,7 @@ export default function Panel() {
                       />
                       <RangeField
                         label="Inner padding"
+                        info={settingsHelp.padding}
                         value={settings.padding}
                         min={0}
                         max={100}
@@ -635,6 +705,7 @@ export default function Panel() {
                       />
                       <RangeField
                         label="Outer margin"
+                        info={settingsHelp.margin}
                         value={settings.margin}
                         min={0}
                         max={100}
@@ -663,6 +734,7 @@ export default function Panel() {
                       </SidePanel.Field>
                       <RangeField
                         label="Height"
+                        info={settingsHelp.height}
                         value={responsive[device].height}
                         min={100}
                         max={1500}
@@ -672,6 +744,7 @@ export default function Panel() {
                       />
                       <RangeField
                         label="Slides per view"
+                        info={settingsHelp.slidesPerView}
                         value={responsive[device].slidesPerView}
                         min={1}
                         max={12}
@@ -679,7 +752,7 @@ export default function Panel() {
                       />
                       <RangeField
                         label="Slides per step"
-                        info="How many slides move with each arrow click."
+                        info={settingsHelp.slidesPerGroup}
                         value={responsive[device].slidesPerGroup}
                         min={1}
                         max={12}
@@ -687,6 +760,7 @@ export default function Panel() {
                       />
                       <RangeField
                         label="Gap between slides"
+                        info={settingsHelp.gap}
                         value={responsive[device].gap}
                         min={0}
                         max={100}
@@ -695,12 +769,14 @@ export default function Panel() {
                       />
                       <SelectField
                         label="Content alignment"
+                        info={settingsHelp.alignment}
                         value={responsive[device].alignment}
                         options={ALIGNMENTS}
                         onChange={(v) => setBreakpoint("alignment", v)}
                       />
                       <ChoiceField
                         label="Media fit"
+                        info={settingsHelp.mediaFit}
                         value={responsive[device].mediaFit}
                         options={[
                           { id: "cover", label: "Fill" },
@@ -711,6 +787,7 @@ export default function Panel() {
                       />
                       <RangeField
                         label="Heading size"
+                        info={settingsHelp.textSize}
                         value={responsive[device].textSize}
                         min={10}
                         max={120}
@@ -719,6 +796,7 @@ export default function Panel() {
                       />
                       <RangeField
                         label="Button text size"
+                        info={settingsHelp.buttonSize}
                         value={responsive[device].buttonSize}
                         min={8}
                         max={40}
@@ -727,11 +805,13 @@ export default function Panel() {
                       />
                       <ToggleField
                         label="Show arrows"
+                        info={settingsHelp.navigation}
                         checked={responsive[device].navigation}
                         onChange={(v) => setBreakpoint("navigation", v)}
                       />
                       <ToggleField
                         label="Show pagination"
+                        info={responsiveHelp.pagination}
                         checked={responsive[device].pagination}
                         onChange={(v) => setBreakpoint("pagination", v)}
                       />
@@ -753,16 +833,19 @@ export default function Panel() {
                     >
                       <FontField
                         label="Font"
+                        info={settingsHelp.fontFamily}
                         value={settings.typography[textStyle].fontFamily}
                         onChange={(v) => setType("fontFamily", v)}
                       />
                       <ColorField
                         label="Color"
+                        info={settingsHelp.color}
                         value={settings.typography[textStyle].color}
                         onChange={(v) => setType("color", v)}
                       />
                       <RangeField
                         label="Font size"
+                        info={settingsHelp.fontSize}
                         value={settings.typography[textStyle].fontSize}
                         min={8}
                         max={160}
@@ -771,6 +854,7 @@ export default function Panel() {
                       />
                       <SelectField
                         label="Weight"
+                        info={settingsHelp.fontWeight}
                         value={String(
                           settings.typography[textStyle].fontWeight,
                         )}
@@ -779,6 +863,7 @@ export default function Panel() {
                       />
                       <RangeField
                         label="Line height"
+                        info={settingsHelp.lineHeight}
                         value={settings.typography[textStyle].lineHeight}
                         min={0.8}
                         max={3}
@@ -787,6 +872,7 @@ export default function Panel() {
                       />
                       <RangeField
                         label="Letter spacing"
+                        info={settingsHelp.letterSpacing}
                         value={settings.typography[textStyle].letterSpacing}
                         min={-5}
                         max={20}

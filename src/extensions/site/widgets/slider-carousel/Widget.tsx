@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { items } from "@wix/data";
 import { window as wixWindow } from "@wix/site-window";
+import { members } from "@wix/members";
 import {
   sliderSchema,
   settingsSchema,
@@ -28,6 +29,7 @@ export function Widget({
   const [slider, setSlider] = useState<SliderModel>();
   const [editor, setEditor] = useState(false);
   const [error, setError] = useState("");
+  const [context, setContext] = useState<{ member?: boolean }>({});
   useEffect(() => {
     let alive = true;
     setSlider(undefined);
@@ -97,7 +99,27 @@ export function Widget({
             })),
           };
         }
-        if (alive) setSlider(result);
+        // Member/guest rules need to know who is visiting; if the lookup
+        // fails, those rules stay unmatched rather than guessing.
+        let member: boolean | undefined;
+        if (
+          !isEditor &&
+          result.slides.some((s) =>
+            s.visibility.conditions.some(
+              (c) => c.kind === "member" || c.kind === "guest",
+            ),
+          )
+        ) {
+          try {
+            member = !!(await members.getCurrentMember()).member?._id;
+          } catch (e) {
+            console.warn("Slider widget could not check member status", e);
+          }
+        }
+        if (alive) {
+          setContext({ member });
+          setSlider(result);
+        }
       } catch (e) {
         console.error("Slider widget could not load", e);
         if (alive) setError("This slider is temporarily unavailable.");
@@ -116,7 +138,12 @@ export function Widget({
     [slider, editor],
   );
   return slider ? (
-    <Slider slider={slider} preview={editor} onEvent={onEvent} />
+    <Slider
+      slider={slider}
+      preview={editor}
+      context={context}
+      onEvent={onEvent}
+    />
   ) : error ? (
     <p
       role="status"

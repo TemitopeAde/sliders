@@ -71,18 +71,13 @@ export function Settings() {
                 form.setValue("analytics", v, { shouldDirty: true })
               }
             />
-            <Toggle
-              label="Respect Do Not Track"
-              value={form.watch("respectDnt")}
-              onChange={(v) =>
-                form.setValue("respectDnt", v, { shouldDirty: true })
-              }
-            />
             <div className="bg-gray-50 rounded-lg p-4 flex gap-3">
               <ShieldCheck size={20} className="text-emerald-600 shrink-0" />
               <p className="text-xs text-gray-500 leading-relaxed m-0">
-                Analytics use anonymous browser session IDs. Content and
-                analytics are stored in Wix Data for the current site.
+                Analytics use anonymous browser session IDs and are never
+                recorded for visitors with Do Not Track or Global Privacy
+                Control turned on. Content and analytics are stored in Wix Data
+                for the current site.
               </p>
             </div>
           </section>

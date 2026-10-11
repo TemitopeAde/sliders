@@ -25,7 +25,11 @@ export async function identity(admin = true): Promise<TokenInfo> {
   try {
     token = (await auth.getTokenInfo()) as TokenInfo;
   } catch {
-    throw new ApiError(401, "UNAUTHENTICATED", "Open this app from your Wix site.");
+    throw new ApiError(
+      401,
+      "UNAUTHENTICATED",
+      "Open this app from your Wix site.",
+    );
   }
   if (!token.active || !token.siteId)
     throw new ApiError(

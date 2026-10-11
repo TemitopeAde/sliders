@@ -171,7 +171,11 @@ export function Slider({
           <Swiper
             key={`${device}-${s.effect}-${s.direction}-${loop}-${perView}`}
             modules={[A11y, Autoplay, EffectFade, FreeMode, Keyboard]}
-            onSwiper={setSwiper}
+            onSwiper={(v) => {
+              setSwiper(v);
+              // Swiper may start on initialSlide; onSlideChange doesn't fire for it.
+              setActive(v.realIndex);
+            }}
             onSlideChange={(v) => setActive(v.realIndex)}
             effect={isFade ? "fade" : "slide"}
             fadeEffect={{ crossFade: s.effect === "crossfade" }}
@@ -226,7 +230,7 @@ export function Slider({
               </SwiperSlide>
             ))}
           </Swiper>
-          {bp.navigation && slides.length > perView && (
+          {s.showArrows && bp.navigation && slides.length > perView && (
             <>
               <button
                 className="sl-nav sl-prev"
@@ -254,12 +258,13 @@ export function Slider({
               </button>
             </>
           )}
-          {bp.pagination && s.pagination !== "none" && (
+          {s.showPagination && bp.pagination && s.pagination !== "none" && (
             <div
               className="sl-pagination"
               style={{
                 [s.paginationPosition === "top" ? "top" : "bottom"]: 14,
                 gap: s.paginationSpacing,
+                color: s.paginationActiveColor,
               }}
             >
               {s.pagination === "fraction" ? (

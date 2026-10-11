@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { slideSchema } from "../src/schemas/slider";
+import { createSlide, slideSchema } from "../src/schemas/slider";
 
 const saved = {
   _id: "slide-1",
@@ -35,4 +35,18 @@ test("out-of-range style values are rejected", () => {
       false,
       JSON.stringify(style),
     );
+});
+
+test("new slides build their heading and text layers from the given title", () => {
+  const slide = createSlide("image", {
+    title: "Spring sale",
+    description: "Up to 40% off",
+  });
+  assert.deepEqual(
+    slide.layers.map((l) => [l.variant, l.text]),
+    [
+      ["heading", "Spring sale"],
+      ["paragraph", "Up to 40% off"],
+    ],
+  );
 });

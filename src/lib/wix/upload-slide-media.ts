@@ -1,5 +1,5 @@
-import { files } from "@wix/media";
 import * as tus from "tus-js-client";
+import { api } from "../api/client";
 
 type UploadedMedia = { url: string; name: string };
 
@@ -11,13 +11,13 @@ export async function uploadSlideMedia(
   if (!file.type)
     throw new Error("The selected file has no recognized media type.");
 
-  const { uploadUrl, uploadToken } = await files.generateFileResumableUploadUrl(
-    file.type,
-    {
-      fileName: file.name,
-      uploadProtocol: "TUS",
-    },
-  );
+  const { uploadUrl, uploadToken } = await api<{
+    uploadUrl: string;
+    uploadToken: string;
+  }>("media-upload-url", "POST", {
+    mimeType: file.type,
+    fileName: file.name,
+  });
   if (!uploadUrl || !uploadToken)
     throw new Error("Wix did not return a resumable upload URL.");
 

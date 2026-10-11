@@ -2,7 +2,7 @@ import { products, collections, catalogVersioning } from "@wix/stores";
 import { currentCartV2 } from "@wix/ecom";
 import { safeUrl } from "../../schemas/slider";
 export interface StoreProduct {
- catalogVersion?: "V1" | "V3";
+  catalogVersion?: "V1" | "V3";
   id: string;
   name: string;
   description: string;
@@ -49,9 +49,16 @@ export async function queryProducts(
   sort = "manual",
   offset = 0,
 ) {
-  const version=await catalogVersioning.getCatalogVersion();
-  if(version.catalogVersion==='STORES_NOT_INSTALLED')throw new Error('Install Wix Stores to select products.');
-  if(version.catalogVersion==='V3_CATALOG')return (await import('./products-v3')).queryV3(search,collectionId,sort,offset);
+  const version = await catalogVersioning.getCatalogVersion();
+  if (version.catalogVersion === "STORES_NOT_INSTALLED")
+    throw new Error("Install Wix Stores to select products.");
+  if (version.catalogVersion === "V3_CATALOG")
+    return (await import("./products-v3")).queryV3(
+      search,
+      collectionId,
+      sort,
+      offset,
+    );
   let query = products.queryProducts().limit(48).skip(offset);
   if (search) query = query.startsWith("name", search);
   if (collectionId) query = query.hasSome("collectionIds", [collectionId]);
@@ -67,16 +74,18 @@ export async function queryProducts(
   };
 }
 export async function getProduct(id: string) {
-  const version=await catalogVersioning.getCatalogVersion();
-  if(version.catalogVersion==='V3_CATALOG')return (await import('./products-v3')).getV3(id);
+  const version = await catalogVersioning.getCatalogVersion();
+  if (version.catalogVersion === "V3_CATALOG")
+    return (await import("./products-v3")).getV3(id);
   const { product } = await products.getProduct(id);
   return product && product.visible !== false
     ? normalizeProduct(product)
     : null;
 }
 export async function queryCollections() {
-  const version=await catalogVersioning.getCatalogVersion();
-  if(version.catalogVersion==='V3_CATALOG')return (await import('./products-v3')).collectionsV3();
+  const version = await catalogVersioning.getCatalogVersion();
+  if (version.catalogVersion === "V3_CATALOG")
+    return (await import("./products-v3")).collectionsV3();
   let result = await collections.queryCollections().limit(100).find();
   const list = [...result.items];
   while (result.hasNext()) {
@@ -89,14 +98,17 @@ export async function addToCart(product: StoreProduct) {
   if (product.requiresOptions)
     throw new Error("Choose product options on the product page.");
   if (!product.inStock) throw new Error("This product is out of stock.");
-  const variantId=product.catalogVersion==='V3'?await (await import('./products-v3')).defaultVariant(product.id):undefined;
+  const variantId =
+    product.catalogVersion === "V3"
+      ? await (await import("./products-v3")).defaultVariant(product.id)
+      : undefined;
   await currentCartV2.addLineItemsToCurrentCart({
     catalogItems: [
       {
         quantity: 1,
         catalogReference: {
           appId: "215238eb-22a5-4c36-9e7b-e7c08025e04e",
-          ...(variantId?{options:{variantId}}:{}),
+          ...(variantId ? { options: { variantId } } : {}),
           catalogItemId: product.id,
         },
       },

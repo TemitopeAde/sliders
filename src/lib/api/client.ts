@@ -18,7 +18,17 @@ export async function api<T>(
     headers: { "Content-Type": "application/json" },
     ...(data === undefined ? {} : { body: JSON.stringify(data) }),
   });
-  const payload = await response.json();
+  let payload: { success?: boolean; message?: string; data?: unknown };
+  try {
+    payload = await response.json();
+  } catch {
+    throw new ClientError(
+      response.ok
+        ? "The server sent an unexpected response. Please try again."
+        : `Request failed (${response.status}). Please try again.`,
+      response.status,
+    );
+  }
   if (!response.ok || !payload.success)
     throw new ClientError(
       payload.message || "Request failed. Please try again.",

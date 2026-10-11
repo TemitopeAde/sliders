@@ -5,6 +5,8 @@ import {
   NumberField,
   TextField,
   Toggle,
+  InfoTip,
+  FieldLabel,
 } from "../forms/Fields";
 import { Textarea } from "../ui/textarea";
 const humanize = (value: string) =>
@@ -25,6 +27,8 @@ export function SchemaFields({
   only,
   exclude = [],
   labels = {},
+  hints = {},
+  path = "",
 }: {
   schema: z.ZodTypeAny;
   value: Record<string, unknown>;
@@ -32,6 +36,9 @@ export function SchemaFields({
   only?: string[];
   exclude?: string[];
   labels?: Record<string, string>;
+  /** Tooltip text per field key, also applied inside nested groups. */
+  hints?: Record<string, string>;
+  path?: string;
 }) {
   const object = unwrap(schema);
   if (!(object instanceof z.ZodObject)) return null;
@@ -47,11 +54,14 @@ export function SchemaFields({
           const current = value[key];
           const label = labels[key] ?? humanize(key);
           const change = (next: unknown) => onChange({ ...value, [key]: next });
+          const fieldPath = path ? `${path}.${key}` : key;
+          const tip = hints[fieldPath] ?? hints[key];
           if (field instanceof z.ZodBoolean)
             return (
               <Toggle
                 key={key}
                 label={label}
+                tip={tip}
                 value={Boolean(current)}
                 onChange={change}
               />
@@ -61,6 +71,7 @@ export function SchemaFields({
               <Choice
                 key={key}
                 label={label}
+                tip={tip}
                 value={String(current)}
                 options={field.options}
                 onChange={change}
@@ -71,6 +82,7 @@ export function SchemaFields({
               <NumberField
                 key={key}
                 label={label}
+                tip={tip}
                 value={Number(current ?? 0)}
                 onChange={change}
                 min={field.minValue ?? 0}
@@ -84,6 +96,7 @@ export function SchemaFields({
                 <ColorField
                   key={key}
                   label={label}
+                  tip={tip}
                   value={current}
                   onChange={change}
                 />
@@ -91,9 +104,11 @@ export function SchemaFields({
             if (key === "description")
               return (
                 <div key={key}>
-                  <label htmlFor={`field-${key}`} className="field-label">
-                    {label}
-                  </label>
+                  <FieldLabel
+                    htmlFor={`field-${key}`}
+                    label={label}
+                    tip={tip}
+                  />
                   <Textarea
                     id={`field-${key}`}
                     value={String(current ?? "")}
@@ -105,6 +120,7 @@ export function SchemaFields({
               <TextField
                 key={key}
                 label={label}
+                tip={tip}
                 value={String(current ?? "")}
                 onChange={change}
               />
@@ -112,22 +128,31 @@ export function SchemaFields({
           }
           if (field instanceof z.ZodObject)
             return (
-              <details key={key} className="border rounded-lg p-3">
-                <summary className="text-xs font-semibold cursor-pointer">
-                  {label}
-                </summary>
-                <div className="mt-4">
-                  <SchemaFields
-                    schema={field}
-                    value={
-                      typeof current === "object" && current !== null
-                        ? (current as Record<string, unknown>)
-                        : {}
-                    }
-                    onChange={change}
-                  />
-                </div>
-              </details>
+              <div key={key} className="relative">
+                <details className="border rounded-lg p-3">
+                  <summary className="text-xs font-semibold cursor-pointer pr-5">
+                    {label}
+                  </summary>
+                  <div className="mt-4">
+                    <SchemaFields
+                      schema={field}
+                      value={
+                        typeof current === "object" && current !== null
+                          ? (current as Record<string, unknown>)
+                          : {}
+                      }
+                      onChange={change}
+                      hints={hints}
+                      path={fieldPath}
+                    />
+                  </div>
+                </details>
+                {tip && (
+                  <span className="absolute right-3 top-3 inline-flex">
+                    <InfoTip label={label} text={tip} />
+                  </span>
+                )}
+              </div>
             );
           return null;
         })}

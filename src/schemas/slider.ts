@@ -95,6 +95,8 @@ export const settingsSchema = z.object({
   direction: z.enum(["horizontal", "vertical"]).default("horizontal"),
   initialSlide: n(0, 199, 0),
   loopAdditionalSlides: n(0, 20, 0),
+  showArrows: z.boolean().default(true),
+  showPagination: z.boolean().default(true),
   pagination: z
     .enum(["bullets", "fraction", "progressbar", "none"])
     .default("bullets"),
@@ -464,9 +466,15 @@ export type Device = z.infer<typeof deviceSchema>;
 export type SliderTemplate = z.infer<typeof templateSchema>;
 export type VisibilityCondition = z.infer<typeof conditionSchema>;
 export type AppSettings = z.infer<typeof appSettingsSchema>;
-export const createSlide = (type: Slide["type"] = "image"): Slide =>
+/** Overrides are applied before parsing, so the starter heading and text
+ * layers are built from the given title and description. */
+export const createSlide = (
+  type: Slide["type"] = "image",
+  overrides: Record<string, unknown> = {},
+): Slide =>
   slideSchema.parse({
     _id: crypto.randomUUID(),
     title: `Untitled ${type}`,
+    ...overrides,
     type,
   });

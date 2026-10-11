@@ -69,9 +69,11 @@ export async function publishSlider(slider: Slider) {
       "VALIDATION_ERROR",
       "Add an enabled slide before publishing.",
     );
+  // Save first so a revision conflict stops the publish before visitors see it.
   // Public data is an explicit snapshot; draft edits never leak to visitors.
-  await items.save(C.published, { ...slider, status: "published" });
-  return saveSlider({ ...slider, status: "published" });
+  const saved = await saveSlider({ ...slider, status: "published" });
+  await items.save(C.published, saved);
+  return saved;
 }
 export async function disableSlider(slider: Slider) {
   await items.remove(C.published, slider._id);

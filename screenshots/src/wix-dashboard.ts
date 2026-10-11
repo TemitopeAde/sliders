@@ -1,6 +1,6 @@
 export const dashboard = {
   onBeforeUnload() {
-    return () => {};
+    return { remove() {} };
   },
   async openMediaManager() {
     return { items: [] };

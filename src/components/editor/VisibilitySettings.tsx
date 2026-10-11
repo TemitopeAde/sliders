@@ -1,11 +1,8 @@
 import { Plus, X } from "lucide-react";
 import { Button } from "../ui/button";
-import { Choice, TextField } from "../forms/Fields";
-import {
-  conditionSchema,
-  type Slide,
-  visibilitySchema,
-} from "../../schemas/slider";
+import { Choice, TextField, FieldLabel } from "../forms/Fields";
+import { visibilityValueHelp } from "../../lib/slider/editor-help";
+import { conditionSchema, type Slide } from "../../schemas/slider";
 export function VisibilitySettings({
   slide,
   onChange,
@@ -16,17 +13,6 @@ export function VisibilitySettings({
   const v = slide.visibility;
   return (
     <div className="space-y-5">
-      <Choice
-        label="Match conditions"
-        value={v.operator}
-        options={["AND", "OR"]}
-        onChange={(operator) =>
-          onChange({
-            ...slide,
-            visibility: visibilitySchema.parse({ ...v, operator }),
-          })
-        }
-      />
       <p className="muted">
         No conditions means visible to everyone. Page paths must match exactly.
         Days use 0–6 (Sunday–Saturday); times use HH:mm-HH:mm in the visitor’s
@@ -55,6 +41,7 @@ export function VisibilitySettings({
           </div>
           <Choice
             label="Rule"
+            tip="Choose what to check before showing this slide. Member matches signed-in visitors; Guest matches visitors who are signed out."
             value={c.kind}
             options={conditionSchema.shape.kind.options}
             onChange={(kind) =>
@@ -74,6 +61,7 @@ export function VisibilitySettings({
           {!["member", "guest"].includes(c.kind) && (
             <TextField
               label="Value"
+              tip={visibilityValueHelp[c.kind]}
               value={c.value}
               onChange={(value) =>
                 onChange({
@@ -117,12 +105,16 @@ export function VisibilitySettings({
         <h3 className="text-sm font-semibold">Schedule</h3>
         {(["start", "end"] as const).map((key) => (
           <div key={key}>
-            <label
+            <FieldLabel
               htmlFor={`schedule-${key}`}
               className="field-label capitalize"
-            >
-              {key} date & time
-            </label>
+              label={`${key} date & time`}
+              tip={
+                key === "start"
+                  ? "Show this slide starting at this date and time in your local timezone. Leave blank for no start limit."
+                  : "Hide this slide at this date and time in your local timezone. Leave blank for no end limit."
+              }
+            />
             <input
               id={`schedule-${key}`}
               type="datetime-local"

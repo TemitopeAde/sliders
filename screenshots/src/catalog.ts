@@ -128,6 +128,17 @@ export const sliders: Slider[] = shots.map((shot) => {
         _id: `${shot.id}-slide-${index + 1}`,
         title,
         description: index === 0 ? slide.description : "Thoughtfully made for everyday.",
+        // Layers carry the visible text, so keep them in step with each title.
+        layers: slide.layers.map((layer) => ({
+          ...layer,
+          _id: `${shot.id}-slide-${index + 1}-${layer._id}`,
+          text:
+            layer.variant === "heading"
+              ? title
+              : layer.variant === "paragraph" && index > 0
+                ? "Thoughtfully made for everyday."
+                : layer.text,
+        })),
         media: image
           ? { ...slide.media, url: photo(image), alt: title }
           : slide.media,

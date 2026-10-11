@@ -1,4 +1,10 @@
-import { useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import {
+  useRef,
+  useState,
+  type CSSProperties,
+  type DragEvent,
+  type PointerEvent,
+} from "react";
 import {
   positionSchema,
   type Slide,
@@ -11,10 +17,14 @@ import {
 import type { AnalyticsEvent } from "../../schemas/analytics";
 import { VideoMedia } from "./VideoMedia";
 import { ProductSlide } from "./ProductSlide";
+export type LayerPreset = "heading" | "paragraph" | "badge" | "button";
+/** Drag payload type for new layers dragged from the editor's "Add to slide" list. */
+export const LAYER_DRAG_TYPE = "application/x-slider-layer";
 export interface LayerEditing {
   selected?: string;
   onSelect: (id: string) => void;
   onChange: (id: string, patch: Partial<Layer>) => void;
+  onAdd?: (preset: LayerPreset, zone: LayerZone) => void;
 }
 const horizontal = (z: LayerZone) =>
   z.endsWith("left")
@@ -70,6 +80,7 @@ export function SliderSlideContent({
     dy: number;
     target: LayerZone;
   }>();
+  const [dropZone, setDropZone] = useState<LayerZone>();
   if (slide.type === "product")
     return <ProductSlide slide={slide} onEvent={onEvent} preview={preview} />;
   const s = slide.style;
@@ -192,6 +203,32 @@ export function SliderSlideContent({
         offsetY: Math.round(layer.offsetY + drag.dy),
       });
   };
+  const accepts = (e: DragEvent) =>
+    !!editing?.onAdd && e.dataTransfer.types.includes(LAYER_DRAG_TYPE);
+  const dropProps = editing?.onAdd
+    ? {
+        onDragOver: (e: DragEvent<HTMLElement>) => {
+          if (!accepts(e)) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+          const zone = zoneAt(e.clientX, e.clientY);
+          if (zone !== dropZone) setDropZone(zone);
+        },
+        onDragLeave: (e: DragEvent<HTMLElement>) => {
+          if (!card.current?.contains(e.relatedTarget as Node | null))
+            setDropZone(undefined);
+        },
+        onDrop: (e: DragEvent<HTMLElement>) => {
+          if (!accepts(e)) return;
+          e.preventDefault();
+          const preset = e.dataTransfer.getData(LAYER_DRAG_TYPE) as LayerPreset;
+          const zone = zoneAt(e.clientX, e.clientY);
+          setDropZone(undefined);
+          if (preset && zone) editing.onAdd?.(preset, zone);
+        },
+      }
+    : {};
+  const highlight = drag?.target ?? dropZone;
   const renderLayer = (l: Layer) => {
     const dragging = drag?.id === l._id;
     const editProps = editing
@@ -267,6 +304,7 @@ export function SliderSlideContent({
   return (
     <article
       ref={card}
+      {...dropProps}
       className="sl-card"
       style={{
         background: s.useGradient
@@ -343,10 +381,10 @@ export function SliderSlideContent({
           </div>
         </div>
       ))}
-      {drag && editing && (
+      {highlight && editing && (
         <div className="sl-drop-grid" aria-hidden="true">
           {positionSchema.options.map((z) => (
-            <span key={z} data-target={drag.target === z} />
+            <span key={z} data-target={highlight === z} />
           ))}
         </div>
       )}
