@@ -28,6 +28,11 @@ export default {
       },
     },
     { key: "revision", displayName: "revision", type: "NUMBER" },
+    {
+      key: "publishedRevision",
+      displayName: "publishedRevision",
+      type: "NUMBER",
+    },
     { key: "createdAt", displayName: "createdAt", type: "TEXT" },
     { key: "updatedAt", displayName: "updatedAt", type: "TEXT" },
   ],

@@ -105,6 +105,19 @@ const DEVICES: { id: Device; label: string; icon: JSX.Element }[] = [
 ];
 
 const parseJson = (v: string | undefined) => (v ? JSON.parse(v) : undefined);
+async function publishedSliders() {
+  let result = await items
+    .query(COLLECTIONS.published)
+    .ascending("name")
+    .limit(100)
+    .find();
+  const all = [...result.items];
+  while (result.hasNext()) {
+    result = await result.next();
+    all.push(...result.items);
+  }
+  return all.map((v) => ({ id: String(v._id), value: String(v.name) }));
+}
 
 export default function Panel() {
   const [loading, setLoading] = useState(true);
@@ -121,6 +134,13 @@ export default function Panel() {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [edits, setEdits] = useState(0);
   const queue = useRef(Promise.resolve());
+  const pending = useRef<ReturnType<typeof setTimeout>>();
+  /** Runs widget prop writes one at a time, in the order they were made. */
+  const enqueue = (write: () => Promise<void>) => {
+    const next = queue.current.then(write);
+    queue.current = next.catch(() => undefined);
+    return next;
+  };
 
   useEffect(() => {
     let alive = true;
@@ -129,7 +149,7 @@ export default function Panel() {
       widget.getProp("settings"),
       widget.getProp("responsive"),
       widget.getProp("preview-snapshot"),
-      items.query(COLLECTIONS.published).limit(100).find(),
+      publishedSliders(),
     ])
       .then(([id, s, r, snap, list]) => {
         if (!alive) return;
@@ -140,9 +160,7 @@ export default function Panel() {
         setResponsive(
           r ? responsiveSchema.parse(parseJson(r)) : base?.responsiveSettings,
         );
-        setSliders(
-          list.items.map((v) => ({ id: v._id, value: String(v.name) })),
-        );
+        setSliders(list);
       })
       .catch(() =>
         setError("We couldn't load your sliders. Reopen settings to retry."),
@@ -158,18 +176,17 @@ export default function Panel() {
   useEffect(() => {
     if (!edits || !settings || !responsive) return;
     setSaveState("saving");
-    const timer = setTimeout(() => {
+    pending.current = setTimeout(() => {
+      pending.current = undefined;
       const s = JSON.stringify(settingsSchema.parse(settings));
       const r = JSON.stringify(responsiveSchema.parse(responsive));
-      queue.current = queue.current
-        .then(async () => {
-          await widget.setProp("settings", s);
-          await widget.setProp("responsive", r);
-          setSaveState("saved");
-        })
-        .catch(() => setSaveState("error"));
+      enqueue(async () => {
+        await widget.setProp("settings", s);
+        await widget.setProp("responsive", r);
+        setSaveState("saved");
+      }).catch(() => setSaveState("error"));
     }, 300);
-    return () => clearTimeout(timer);
+    return () => clearTimeout(pending.current);
   }, [edits]);
 
   const set = <K extends keyof SliderSettings>(
@@ -214,10 +231,13 @@ export default function Panel() {
     return slider;
   }
   async function run(action: () => Promise<void>, failure: string) {
+    // Drop an unsent edit so it can't overwrite the slider chosen here.
+    clearTimeout(pending.current);
+    pending.current = undefined;
     setBusy(true);
     setError("");
     try {
-      await action();
+      await enqueue(action);
     } catch {
       setError(failure);
     } finally {

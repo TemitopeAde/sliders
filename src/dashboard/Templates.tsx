@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ArrowUpRight, Search, Eye } from "lucide-react";
+import { ArrowUpRight, Search, Eye, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
@@ -11,17 +12,34 @@ import {
   DialogDescription,
 } from "../components/ui/dialog";
 import { Slider } from "../components/slider/Slider";
-import { templateToSlider } from "../lib/slider/templates";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from "../components/ui/alert-dialog";
+import { starterTemplates, templateToSlider } from "../lib/slider/templates";
+import { api } from "../lib/api/client";
 import type { SliderTemplate } from "../schemas/slider";
 import { PageHeading } from "./Shared";
+const SAVED = "My templates";
+const isSaved = (t: SliderTemplate) =>
+  !starterTemplates.some((s) => s._id === t._id);
 export function TemplateCard({
   template,
   onUse,
   onPreview,
+  onRename,
+  onDelete,
 }: {
   template: SliderTemplate;
   onUse: (t: SliderTemplate) => void;
   onPreview?: (t: SliderTemplate) => void;
+  onRename?: (t: SliderTemplate) => void;
+  onDelete?: (t: SliderTemplate) => void;
 }) {
   return (
     <article className="surface p-3">
@@ -56,15 +74,37 @@ export function TemplateCard({
             {template.slides.length === 1 ? "slide" : "slides"}
           </span>
         </div>
-        <Button
-          aria-label={`Use ${template.name}`}
-          size="sm"
-          variant="outline"
-          onClick={() => onUse(template)}
-        >
-          Use
-          <ArrowUpRight size={14} />
-        </Button>
+        <div className="flex items-center gap-1">
+          {onRename && (
+            <Button
+              aria-label={`Rename ${template.name}`}
+              size="icon-sm"
+              variant="ghost"
+              onClick={() => onRename(template)}
+            >
+              <Pencil size={14} />
+            </Button>
+          )}
+          {onDelete && (
+            <Button
+              aria-label={`Delete ${template.name}`}
+              size="icon-sm"
+              variant="ghost"
+              onClick={() => onDelete(template)}
+            >
+              <Trash2 size={14} />
+            </Button>
+          )}
+          <Button
+            aria-label={`Use ${template.name}`}
+            size="sm"
+            variant="outline"
+            onClick={() => onUse(template)}
+          >
+            Use
+            <ArrowUpRight size={14} />
+          </Button>
+        </div>
       </div>
     </article>
   );
@@ -72,15 +112,25 @@ export function TemplateCard({
 export function Templates({
   templates,
   onUse,
+  onChanged,
 }: {
   templates: SliderTemplate[];
   onUse: (t: SliderTemplate) => void;
+  onChanged: () => void;
 }) {
   const [filter, setFilter] = useState("All templates");
   const [search, setSearch] = useState("");
   const [preview, setPreview] = useState<SliderTemplate>();
+  const [renaming, setRenaming] = useState<SliderTemplate>();
+  const [name, setName] = useState("");
+  const [deleting, setDeleting] = useState<SliderTemplate>();
+  const [busy, setBusy] = useState(false);
+  const hasSaved = templates.some(isSaved);
+  // Deleting the last saved template removes its tab; don't stay on it.
+  const active = filter === SAVED && !hasSaved ? "All templates" : filter;
   const categories = [
     "All templates",
+    ...(hasSaved ? [SAVED] : []),
     "Hero",
     "Products",
     "Promotions",
@@ -90,9 +140,24 @@ export function Templates({
   ];
   const visible = templates.filter(
     (t) =>
-      (filter === "All templates" || filter === t.category) &&
+      (active === "All templates" ||
+        (active === SAVED ? isSaved(t) : active === t.category)) &&
       t.name.toLowerCase().includes(search.toLowerCase()),
   );
+  async function run(action: () => Promise<unknown>, done: string) {
+    setBusy(true);
+    try {
+      await action();
+      toast.success(done);
+      onChanged();
+      setRenaming(undefined);
+      setDeleting(undefined);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <>
       <PageHeading
@@ -105,10 +170,10 @@ export function Templates({
         {categories.map((c) => (
           <Button
             key={c}
-            variant={filter === c ? "default" : "ghost"}
+            variant={active === c ? "default" : "ghost"}
             size="sm"
             onClick={() => setFilter(c)}
-            aria-pressed={filter === c}
+            aria-pressed={active === c}
           >
             {c}
           </Button>
@@ -131,6 +196,15 @@ export function Templates({
             template={t}
             onUse={onUse}
             onPreview={setPreview}
+            {...(isSaved(t)
+              ? {
+                  onRename: (v: SliderTemplate) => {
+                    setName(v.name);
+                    setRenaming(v);
+                  },
+                  onDelete: setDeleting,
+                }
+              : {})}
           />
         ))}
       </div>
@@ -156,6 +230,76 @@ export function Templates({
         onClose={() => setPreview(undefined)}
         onUse={onUse}
       />
+      <Dialog
+        open={!!renaming}
+        onOpenChange={(v) => !v && setRenaming(undefined)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename template</DialogTitle>
+            <DialogDescription>
+              Sliders already made from it keep their names.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!renaming || !name.trim()) return;
+              void run(
+                () =>
+                  api(`templates/${renaming._id}`, "PATCH", {
+                    name: name.trim(),
+                  }),
+                "Template renamed",
+              );
+            }}
+          >
+            <Input
+              aria-label="Template name"
+              value={name}
+              maxLength={100}
+              autoFocus
+              onChange={(e) => setName(e.target.value)}
+            />
+            <div className="flex justify-end">
+              <Button disabled={busy || !name.trim()}>
+                {busy ? "Saving…" : "Save name"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog
+        open={!!deleting}
+        onOpenChange={(v) => !v && setDeleting(undefined)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete “{deleting?.name}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sliders already made from this template aren’t affected. This
+              can’t be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button
+              className="bg-red-600"
+              disabled={busy}
+              onClick={() =>
+                deleting &&
+                void run(
+                  () => api(`templates/${deleting._id}`, "DELETE"),
+                  "Template deleted",
+                )
+              }
+            >
+              {busy ? "Deleting…" : "Delete template"}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

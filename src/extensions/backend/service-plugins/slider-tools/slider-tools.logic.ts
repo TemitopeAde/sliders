@@ -1,22 +1,14 @@
-import { items } from "@wix/data";
 import { z } from "zod";
-import {
-  appSettingsSchema,
-  createSliderSchema,
-  slideSchema,
-  sliderSchema,
-  templateSchema,
-  updateSliderSchema,
-} from "../../../../schemas/slider";
+import { slideSchema, updateSliderSchema } from "../../../../schemas/slider";
 import { rangeSchema } from "../../../../schemas/analytics";
 import { readAnalytics } from "../../../../lib/api/analytics";
 import * as repo from "../../../../lib/api/repository";
+import * as service from "../../../../lib/api/service";
 import { ApiError } from "../../../../lib/api/server";
-import { templateToSlider } from "../../../../lib/slider/templates";
-import { COLLECTIONS as C } from "../../../../lib/wix/collections";
 import { queryCollections, queryProducts } from "../../../../lib/wix/products";
 
 const id = z.string().min(1).max(100);
+const revision = z.number().int().nonnegative();
 const payload = (value: unknown): Record<string, unknown> =>
   value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -37,17 +29,6 @@ function requireWixUser(metadata: unknown) {
       "A Wix site collaborator must perform this action.",
     );
 }
-const blankSlider = (
-  name: string,
-  type: z.infer<typeof createSliderSchema>["type"],
-) =>
-  sliderSchema.parse({
-    _id: crypto.randomUUID(),
-    name,
-    type,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  });
 
 export const sliderToolMethods = [
   "listSliders",
@@ -66,6 +47,8 @@ export const sliderToolMethods = [
   "deleteSlide",
   "listTemplates",
   "saveTemplate",
+  "renameTemplate",
+  "deleteTemplate",
   "useTemplate",
   "getSettings",
   "updateSettings",
@@ -74,6 +57,11 @@ export const sliderToolMethods = [
   "listCollections",
 ] as const;
 
+const ok = async (data: Promise<unknown>) => ({
+  success: true,
+  data: await data,
+});
+
 export async function runSliderTool(
   methodName: string | undefined,
   input: unknown,
@@ -81,271 +69,93 @@ export async function runSliderTool(
 ) {
   requireWixUser(metadata);
   const value = payload(input);
+  const parse = <T extends z.ZodRawShape>(shape: T) =>
+    z.object(shape).strict().parse(value);
   switch (methodName) {
-    case "listSliders": {
-      const filters = z
-        .object({
-          search: z.string().trim().max(100).optional(),
-          status: z.enum(["draft", "published", "disabled"]).optional(),
-        })
-        .strict()
-        .parse(value);
-      return { success: true, data: await repo.listSliders(filters) };
-    }
+    case "listSliders":
+      return ok(
+        repo.listSliders(
+          parse({
+            search: z.string().trim().max(100).optional(),
+            status: z.enum(["draft", "published", "disabled"]).optional(),
+          }),
+        ),
+      );
     case "getSlider":
-      return {
-        success: true,
-        data: await repo.getSlider(id.parse(value.sliderId)),
-      };
-    case "createSlider": {
-      const request = createSliderSchema.parse(value);
-      let next = blankSlider(request.name, request.type);
-      if (request.templateId) {
-        const template = (await repo.templates()).find(
-          (item) => item._id === request.templateId,
-        );
-        if (!template)
-          throw new ApiError(404, "NOT_FOUND", "Template not found.");
-        next = templateToSlider(template, request.name);
-      } else {
-        const settings = await repo.getSettings();
-        next.settings.autoplay = settings.defaultAutoplay;
-        next.settings.analytics = settings.analytics;
-      }
-      return { success: true, data: await repo.insertSlider(next) };
-    }
+      return ok(repo.getSlider(id.parse(value.sliderId)));
+    case "createSlider":
+      return ok(service.createSlider(value));
     case "updateSlider": {
-      const request = z
-        .object({ sliderId: id, slider: updateSliderSchema })
-        .strict()
-        .parse(value);
-      const current = await repo.getSlider(request.sliderId);
-      return {
-        success: true,
-        data: await repo.saveSlider({
-          ...current,
-          ...request.slider,
-          status: current.status,
-        }),
-      };
+      const r = parse({ sliderId: id, slider: updateSliderSchema });
+      return ok(service.updateSlider(r.sliderId, r.slider));
     }
-    case "duplicateSlider": {
-      const current = await repo.getSlider(id.parse(value.sliderId));
-      const now = new Date().toISOString();
-      return {
-        success: true,
-        data: await repo.insertSlider({
-          ...current,
-          _id: crypto.randomUUID(),
-          name: `${current.name.slice(0, 90)} (copy)`,
-          status: "draft",
-          revision: 0,
-          createdAt: now,
-          updatedAt: now,
-          slides: current.slides.map((item) => ({
-            ...item,
-            _id: crypto.randomUUID(),
-          })),
-        }),
-      };
-    }
+    case "duplicateSlider":
+      return ok(service.duplicateSlider(id.parse(value.sliderId)));
     case "publishSlider":
-      return {
-        success: true,
-        data: await repo.publishSlider(
-          await repo.getSlider(id.parse(value.sliderId)),
-        ),
-      };
+      return ok(
+        repo.publishSlider(await repo.getSlider(id.parse(value.sliderId))),
+      );
     case "disableSlider":
-      return {
-        success: true,
-        data: await repo.disableSlider(
-          await repo.getSlider(id.parse(value.sliderId)),
-        ),
-      };
-    case "deleteSlider": {
-      const request = z
-        .object({ sliderId: id, confirmed })
-        .strict()
-        .parse(value);
-      return { success: true, data: await repo.deleteSlider(request.sliderId) };
-    }
+      return ok(
+        repo.disableSlider(await repo.getSlider(id.parse(value.sliderId))),
+      );
+    case "deleteSlider":
+      return ok(repo.deleteSlider(parse({ sliderId: id, confirmed }).sliderId));
     case "listSlides":
-      return {
-        success: true,
-        data: (await repo.getSlider(id.parse(value.sliderId))).slides,
-      };
+      return ok(repo.getSlider(id.parse(value.sliderId)).then((s) => s.slides));
     case "addSlide": {
-      const request = z
-        .object({ sliderId: id, slide: slideSchema })
-        .strict()
-        .parse(value);
-      const current = await repo.getSlider(request.sliderId);
-      return {
-        success: true,
-        data: await repo.saveSlider({
-          ...current,
-          slides: [...current.slides, request.slide],
-        }),
-      };
+      const r = parse({ sliderId: id, revision, slide: slideSchema });
+      return ok(service.addSlide(r.sliderId, r.revision, r.slide));
     }
     case "updateSlide": {
-      const request = z
-        .object({
-          sliderId: id,
-          slideId: id,
-          revision: z.number().int().nonnegative(),
-          slide: slideSchema,
-        })
-        .strict()
-        .parse(value);
-      const current = await repo.getSlider(request.sliderId);
-      if (
-        request.slide._id !== request.slideId ||
-        !current.slides.some((item) => item._id === request.slideId)
-      )
-        throw new ApiError(404, "NOT_FOUND", "Slide not found.");
-      return {
-        success: true,
-        data: await repo.saveSlider({
-          ...current,
-          revision: request.revision,
-          slides: current.slides.map((item) =>
-            item._id === request.slideId ? request.slide : item,
-          ),
-        }),
-      };
+      const r = parse({
+        sliderId: id,
+        slideId: id,
+        revision,
+        slide: slideSchema,
+      });
+      return ok(
+        service.updateSlide(r.sliderId, r.slideId, r.revision, r.slide),
+      );
     }
     case "duplicateSlide": {
-      const request = z
-        .object({
-          sliderId: id,
-          slideId: id,
-          revision: z.number().int().nonnegative(),
-        })
-        .strict()
-        .parse(value);
-      const current = await repo.getSlider(request.sliderId);
-      const source = current.slides.find(
-        (item) => item._id === request.slideId,
-      );
-      if (!source) throw new ApiError(404, "NOT_FOUND", "Slide not found.");
-      return {
-        success: true,
-        data: await repo.saveSlider({
-          ...current,
-          revision: request.revision,
-          slides: [
-            ...current.slides,
-            {
-              ...source,
-              _id: crypto.randomUUID(),
-              title: `${source.title.slice(0, 150)} (copy)`,
-            },
-          ],
-        }),
-      };
+      const r = parse({ sliderId: id, slideId: id, revision });
+      return ok(service.duplicateSlide(r.sliderId, r.slideId, r.revision));
     }
     case "reorderSlides": {
-      const request = z
-        .object({
-          sliderId: id,
-          revision: z.number().int().nonnegative(),
-          ids: z.array(id).max(200),
-        })
-        .strict()
-        .parse(value);
-      const current = await repo.getSlider(request.sliderId);
-      if (
-        request.ids.length !== current.slides.length ||
-        new Set(request.ids).size !== request.ids.length ||
-        request.ids.some(
-          (slideId) => !current.slides.some((item) => item._id === slideId),
-        )
-      )
-        throw new ApiError(
-          400,
-          "VALIDATION_ERROR",
-          "Order must include every slide exactly once.",
-        );
-      return {
-        success: true,
-        data: await repo.saveSlider({
-          ...current,
-          revision: request.revision,
-          slides: request.ids.map((slideId) =>
-            current.slides.find((item) => item._id === slideId)!,
-          ),
-        }),
-      };
+      const r = parse({ sliderId: id, revision, ids: z.array(id).max(200) });
+      return ok(service.reorderSlides(r.sliderId, r.revision, r.ids));
     }
     case "deleteSlide": {
-      const request = z
-        .object({
-          sliderId: id,
-          slideId: id,
-          revision: z.number().int().nonnegative(),
-          confirmed,
-        })
-        .strict()
-        .parse(value);
-      const current = await repo.getSlider(request.sliderId);
-      if (!current.slides.some((item) => item._id === request.slideId))
-        throw new ApiError(404, "NOT_FOUND", "Slide not found.");
-      return {
-        success: true,
-        data: await repo.saveSlider({
-          ...current,
-          revision: request.revision,
-          slides: current.slides.filter((item) => item._id !== request.slideId),
-        }),
-      };
+      const r = parse({ sliderId: id, slideId: id, revision, confirmed });
+      return ok(service.deleteSlide(r.sliderId, r.slideId, r.revision));
     }
     case "listTemplates":
-      return { success: true, data: await repo.templates() };
-    case "saveTemplate": {
-      const request = z
-        .object({ template: templateSchema.omit({ _id: true }) })
-        .strict()
-        .parse(value);
-      return {
-        success: true,
-        data: await items.insert(C.templates, {
-          ...request.template,
-          _id: crypto.randomUUID(),
-        }),
-      };
-    }
-    case "useTemplate": {
-      const request = z
-        .object({ templateId: id, name: z.string().trim().min(1).max(100) })
-        .strict()
-        .parse(value);
-      const template = (await repo.templates()).find(
-        (item) => item._id === request.templateId,
+      return ok(repo.templates());
+    case "saveTemplate":
+      return ok(
+        service.saveTemplate(
+          parse({ template: service.savedTemplateSchema }).template,
+        ),
       );
-      if (!template)
-        throw new ApiError(404, "NOT_FOUND", "Template not found.");
-      return {
-        success: true,
-        data: await repo.insertSlider(templateToSlider(template, request.name)),
-      };
+    case "renameTemplate": {
+      const r = parse({ templateId: id, name: service.templateName });
+      return ok(service.renameTemplate(r.templateId, r.name));
+    }
+    case "deleteTemplate":
+      return ok(
+        service.deleteTemplate(parse({ templateId: id, confirmed }).templateId),
+      );
+    case "useTemplate": {
+      const r = parse({ templateId: id, name: service.templateName });
+      return ok(service.useTemplate(r.templateId, r.name));
     }
     case "getSettings":
-      return { success: true, data: await repo.getSettings() };
-    case "updateSettings": {
-      const request = z
-        .object({ settings: appSettingsSchema })
-        .strict()
-        .parse(value);
-      return {
-        success: true,
-        data: await items.save(C.settings, {
-          ...request.settings,
-          _id: "preferences",
-        }),
-      };
-    }
+      return ok(repo.getSettings());
+    case "updateSettings":
+      return ok(
+        service.saveSettings(parse({ settings: z.unknown() }).settings),
+      );
     case "getAnalytics": {
       const request = z
         .object({

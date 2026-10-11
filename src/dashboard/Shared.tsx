@@ -115,8 +115,15 @@ export function Empty({
     </div>
   );
 }
-export function Status({ value }: { value: string }) {
-  return (
+export function Status({
+  value,
+  changes = false,
+}: {
+  value: string;
+  /** Saved edits that visitors won't see until the slider is republished. */
+  changes?: boolean;
+}) {
+  const badge = (
     <Badge
       variant="outline"
       className={`capitalize font-medium border-0 ${value === "published" ? "bg-emerald-50 text-emerald-700" : value === "disabled" ? "bg-gray-100 text-gray-600" : "bg-amber-50 text-amber-700"}`}
@@ -126,6 +133,20 @@ export function Status({ value }: { value: string }) {
       />
       {value}
     </Badge>
+  );
+  return changes ? (
+    <span className="inline-flex items-center gap-1.5 flex-wrap">
+      {badge}
+      <Badge
+        variant="outline"
+        className="font-medium border-0 bg-blue-50 text-blue-700"
+        title="Publish again to show your latest saved changes on your site."
+      >
+        Unpublished changes
+      </Badge>
+    </span>
+  ) : (
+    badge
   );
 }
 export function SectionTitle({

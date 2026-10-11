@@ -57,3 +57,33 @@ test("time ranges can wrap past midnight", () => {
   assert.equal(isSlideVisible(slide, at(3)), true);
   assert.equal(isSlideVisible(slide, at(12)), false);
 });
+
+test("inventory rules use each product slide's own stock", () => {
+  const slide = (productId: string, value: string) =>
+    createSlide("product", {
+      productId,
+      visibility: { conditions: [{ kind: "inventory", value }] },
+    });
+  const stock = { a: true, b: false };
+  assert.equal(
+    isSlideVisible(slide("a", "in-stock"), context({ stock })),
+    true,
+  );
+  assert.equal(
+    isSlideVisible(slide("b", "in-stock"), context({ stock })),
+    false,
+  );
+  assert.equal(
+    isSlideVisible(slide("b", "out-of-stock"), context({ stock })),
+    true,
+  );
+  // Unknown stock matches neither rule.
+  assert.equal(
+    isSlideVisible(slide("c", "in-stock"), context({ stock })),
+    false,
+  );
+  assert.equal(
+    isSlideVisible(slide("c", "out-of-stock"), context({ stock })),
+    false,
+  );
+});

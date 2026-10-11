@@ -135,8 +135,8 @@ export const sliderTools = [
   tool(
     "addSlide",
     "Add slide",
-    "Adds a complete slide to a slider. Use when a collaborator asks to add image, video, product, promotion, or text content.",
-    object({ sliderId, slide }, ["sliderId", "slide"]),
+    "Adds a complete slide to a slider using the slider revision from a prior read. Use when a collaborator asks to add image, video, product, promotion, or text content.",
+    object({ sliderId, revision, slide }, ["sliderId", "revision", "slide"]),
   ),
   tool(
     "updateSlide",
@@ -211,6 +211,30 @@ export const sliderTools = [
     ),
   ),
   tool(
+    "renameTemplate",
+    "Rename template",
+    "Renames a saved slider template. Built-in templates can't be renamed. Use when a collaborator asks to rename one of their templates.",
+    object(
+      {
+        templateId: string("Saved template ID."),
+        name: string("New template name."),
+      },
+      ["templateId", "name"],
+    ),
+  ),
+  tool(
+    "deleteTemplate",
+    "Delete template",
+    "Deletes a saved slider template after explicit confirmation. Built-in templates can't be deleted. Sliders created from the template are not affected.",
+    object(
+      {
+        templateId: string("Saved template ID."),
+        confirmed: boolean("Must be true after explicit user confirmation."),
+      },
+      ["templateId", "confirmed"],
+    ),
+  ),
+  tool(
     "useTemplate",
     "Use template",
     "Creates a new slider from a template. Use when a collaborator selects a template and provides a name for the new slider.",
@@ -225,18 +249,19 @@ export const sliderTools = [
   tool(
     "getSettings",
     "Get settings",
-    "Returns Sliders app preferences. Use when a collaborator asks about analytics, do-not-track, autoplay, or catalog settings.",
+    "Returns Sliders app preferences. Use when a collaborator asks about analytics or autoplay defaults for new sliders.",
     object({}),
   ),
   tool(
     "updateSettings",
     "Update settings",
-    "Updates Sliders app preferences. Use when a collaborator asks to change default autoplay, analytics, do-not-track, or catalog settings.",
+    "Updates Sliders app preferences. Use when a collaborator asks to change the default autoplay or analytics for new sliders.",
     object(
       {
         settings: {
           type: "object",
-          description: "Complete app settings object.",
+          description:
+            "Complete app settings: { analytics: boolean, defaultAutoplay: boolean }.",
         },
       },
       ["settings"],

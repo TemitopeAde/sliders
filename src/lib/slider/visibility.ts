@@ -6,6 +6,8 @@ export interface VisibilityContext {
   country?: string;
   roles?: string[];
   inStock?: boolean;
+  /** Stock state by product ID; sets `inStock` for each product slide. */
+  stock?: Record<string, boolean>;
   now: Date;
 }
 export function matchesCondition(
@@ -59,7 +61,11 @@ export function isSlideVisible(
   if (slide.schedule.end && now >= Date.parse(slide.schedule.end)) return false;
   const conditions = slide.visibility.conditions;
   if (!conditions.length) return true;
+  const own =
+    slide.type === "product" && context.stock
+      ? { ...context, inStock: context.stock[slide.productId] }
+      : context;
   return slide.visibility.operator === "AND"
-    ? conditions.every((c) => matchesCondition(c, context))
-    : conditions.some((c) => matchesCondition(c, context));
+    ? conditions.every((c) => matchesCondition(c, own))
+    : conditions.some((c) => matchesCondition(c, own));
 }

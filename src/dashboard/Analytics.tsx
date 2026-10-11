@@ -158,6 +158,27 @@ export function Analytics({
               ))}
             </div>
             <section className="surface p-6 mb-6">
+              <SectionTitle title="Engagement" />
+              <dl className="grid grid-cols-2 lg:grid-cols-4 gap-4 m-0">
+                {[
+                  { label: "Arrow clicks", value: data.navigationClicks },
+                  { label: "Pagination clicks", value: data.paginationClicks },
+                  { label: "Video pauses", value: data.videoPauses },
+                  {
+                    label: "Videos watched to the end",
+                    value: data.videoCompletions,
+                  },
+                ].map((s) => (
+                  <div key={s.label}>
+                    <dt className="text-xs text-gray-400 mb-1">{s.label}</dt>
+                    <dd className="m-0 text-lg font-semibold tabular-nums">
+                      {s.value.toLocaleString()}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+            <section className="surface p-6 mb-6">
               <SectionTitle title="Impressions over time" />
               {!data.daily.length ? (
                 <Empty
@@ -278,7 +299,8 @@ export function Analytics({
             </div>
             <p className="text-xs text-gray-400 mt-5">
               Unique views count browser sessions, not identified people.
-              Visitor privacy preferences can reduce reported totals.
+              Visitor privacy preferences can reduce reported totals. Events
+              older than 13 months are deleted automatically.
             </p>
           </>
         )

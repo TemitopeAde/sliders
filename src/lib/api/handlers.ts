@@ -1,33 +1,14 @@
-import { items } from "@wix/data";
 import { z } from "zod";
-import {
-  createSliderSchema,
-  sliderSchema,
-  updateSliderSchema,
-  slideSchema,
-  templateSchema,
-  appSettingsSchema,
-} from "../../schemas/slider";
-import { templateToSlider } from "../slider/templates";
-import { COLLECTIONS as C } from "../wix/collections";
-import { route, body, idParam, ApiError } from "./server";
+import { slideSchema, updateSliderSchema } from "../../schemas/slider";
+import { route, body, idParam } from "./server";
 import * as repo from "./repository";
+import * as service from "./service";
 import { readAnalytics, recordEvent } from "./analytics";
-const blank = (
-  name: string,
-  type: z.infer<typeof createSliderSchema>["type"],
-) =>
-  sliderSchema.parse({
-    _id: crypto.randomUUID(),
-    name,
-    type,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  });
 const listFilters = z.object({
   search: z.string().trim().max(100).optional(),
   status: z.enum(["draft", "published", "disabled"]).optional(),
 });
+const revision = z.number().int().nonnegative();
 export const list = route(({ url }) =>
   repo.listSliders(
     listFilters.parse({
@@ -36,43 +17,22 @@ export const list = route(({ url }) =>
     }),
   ),
 );
-export const create = route(async ({ request }) => {
-  const data = createSliderSchema.parse(await body(request));
-  let slider = blank(data.name, data.type);
-  if (data.templateId) {
-    const t = (await repo.templates()).find((v) => v._id === data.templateId);
-    if (!t) throw new ApiError(404, "NOT_FOUND", "Template not found.");
-    slider = templateToSlider(t, data.name);
-  } else {
-    const settings = await repo.getSettings();
-    slider.settings.autoplay = settings.defaultAutoplay;
-    slider.settings.analytics = settings.analytics;
-  }
-  return repo.insertSlider(slider);
-});
+export const create = route(async ({ request }) =>
+  service.createSlider(await body(request)),
+);
 export const get = route(({ params }) => repo.getSlider(idParam(params.id)));
-export const update = route(async ({ params, request }) => {
-  const value = updateSliderSchema.parse(await body(request));
-  const current = await repo.getSlider(idParam(params.id));
-  return repo.saveSlider({ ...current, ...value, status: current.status });
-});
+export const update = route(async ({ params, request }) =>
+  service.updateSlider(
+    idParam(params.id),
+    updateSliderSchema.parse(await body(request)),
+  ),
+);
 export const remove = route(({ params }) =>
   repo.deleteSlider(idParam(params.id)),
 );
-export const duplicate = route(async ({ params }) => {
-  const slider = await repo.getSlider(idParam(params.id));
-  const now = new Date().toISOString();
-  return repo.insertSlider({
-    ...slider,
-    _id: crypto.randomUUID(),
-    name: `${slider.name.slice(0, 90)} (copy)`,
-    status: "draft",
-    revision: 0,
-    createdAt: now,
-    updatedAt: now,
-    slides: slider.slides.map((s) => ({ ...s, _id: crypto.randomUUID() })),
-  });
-});
+export const duplicate = route(({ params }) =>
+  service.duplicateSlider(idParam(params.id)),
+);
 export const publish = route(async ({ params }) =>
   repo.publishSlider(await repo.getSlider(idParam(params.id))),
 );
@@ -83,103 +43,74 @@ export const listSlides = route(
   async ({ params }) => (await repo.getSlider(idParam(params.id))).slides,
 );
 export const addSlide = route(async ({ params, request }) => {
-  const slider = await repo.getSlider(idParam(params.id));
-  const slide = slideSchema.parse(await body(request));
-  return repo.saveSlider({ ...slider, slides: [...slider.slides, slide] });
+  const data = z
+    .object({ revision, slide: slideSchema })
+    .strict()
+    .parse(await body(request));
+  return service.addSlide(idParam(params.id), data.revision, data.slide);
 });
-const slideRequest = z
-  .object({
-    sliderId: z.string(),
-    revision: z.number().int().nonnegative(),
-    slide: slideSchema.optional(),
-  })
-  .strict();
+const slideRequest = z.object({ sliderId: z.string(), revision }).strict();
 export const patchSlide = route(async ({ params, request }) => {
-  const data = slideRequest.parse(await body(request));
-  const slider = await repo.getSlider(data.sliderId);
-  const id = idParam(params.id);
-  if (!slider.slides.some((s) => s._id === id))
-    throw new ApiError(404, "NOT_FOUND", "Slide not found.");
-  if (!data.slide || data.slide._id !== id)
-    throw new ApiError(400, "VALIDATION_ERROR", "Slide ID mismatch.");
-  return repo.saveSlider({
-    ...slider,
-    revision: data.revision,
-    slides: slider.slides.map((s) => (s._id === id ? data.slide! : s)),
-  });
+  const data = slideRequest
+    .extend({ slide: slideSchema })
+    .parse(await body(request));
+  return service.updateSlide(
+    idParam(data.sliderId),
+    idParam(params.id),
+    data.revision,
+    data.slide,
+  );
 });
 export const removeSlide = route(async ({ params, request }) => {
   const data = slideRequest.parse(await body(request));
-  const slider = await repo.getSlider(data.sliderId);
-  return repo.saveSlider({
-    ...slider,
-    revision: data.revision,
-    slides: slider.slides.filter((s) => s._id !== idParam(params.id)),
-  });
+  return service.deleteSlide(
+    idParam(data.sliderId),
+    idParam(params.id),
+    data.revision,
+  );
 });
 export const duplicateSlide = route(async ({ params, request }) => {
   const data = slideRequest.parse(await body(request));
-  const slider = await repo.getSlider(data.sliderId);
-  const slide = slider.slides.find((s) => s._id === idParam(params.id));
-  if (!slide) throw new ApiError(404, "NOT_FOUND", "Slide not found.");
-  return repo.saveSlider({
-    ...slider,
-    revision: data.revision,
-    slides: [
-      ...slider.slides,
-      {
-        ...slide,
-        _id: crypto.randomUUID(),
-        title: `${slide.title.slice(0, 150)} (copy)`,
-      },
-    ],
-  });
+  return service.duplicateSlide(
+    idParam(data.sliderId),
+    idParam(params.id),
+    data.revision,
+  );
 });
 export const reorder = route(async ({ request }) => {
   const data = z
     .object({
       sliderId: z.string(),
-      revision: z.number(),
+      revision,
       ids: z.array(z.string()).max(200),
     })
     .strict()
     .parse(await body(request));
-  const slider = await repo.getSlider(data.sliderId);
-  if (
-    data.ids.length !== slider.slides.length ||
-    new Set(data.ids).size !== data.ids.length ||
-    data.ids.some((id) => !slider.slides.some((s) => s._id === id))
-  )
-    throw new ApiError(
-      400,
-      "VALIDATION_ERROR",
-      "Order must include every slide exactly once.",
-    );
-  return repo.saveSlider({
-    ...slider,
-    revision: data.revision,
-    slides: data.ids.map((id) => slider.slides.find((s) => s._id === id)!),
-  });
+  return service.reorderSlides(idParam(data.sliderId), data.revision, data.ids);
 });
 export const listTemplates = route(() => repo.templates());
-export const saveTemplate = route(async ({ request }) => {
-  const t = templateSchema.omit({ _id: true }).parse(await body(request));
-  return items.insert(C.templates, { ...t, _id: crypto.randomUUID() });
+export const saveTemplate = route(async ({ request }) =>
+  service.saveTemplate(await body(request)),
+);
+export const renameTemplate = route(async ({ params, request }) => {
+  const { name } = z
+    .object({ name: service.templateName })
+    .strict()
+    .parse(await body(request));
+  return service.renameTemplate(idParam(params.id), name);
 });
+export const deleteTemplate = route(({ params }) =>
+  service.deleteTemplate(idParam(params.id)),
+);
 export const useTemplate = route(async ({ params, request }) => {
   const { name } = z
-    .object({ name: z.string().min(1).max(100) })
+    .object({ name: service.templateName })
     .parse(await body(request));
-  const t = (await repo.templates()).find((v) => v._id === params.id);
-  if (!t) throw new ApiError(404, "NOT_FOUND", "Template not found.");
-  return repo.insertSlider(templateToSlider(t, name));
+  return service.useTemplate(idParam(params.id), name);
 });
 export const settingsGet = route(() => repo.getSettings());
 export const settingsSave = route(async ({ request }) =>
-  items.save(C.settings, {
-    ...appSettingsSchema.parse(await body(request)),
-    _id: "preferences",
-  }),
+  service.saveSettings(await body(request)),
 );
 export const analyticsGet = route(({ url }) => readAnalytics(url));
 export const analyticsPost = route(

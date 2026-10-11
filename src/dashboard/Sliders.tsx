@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Slider as SliderModel } from "../schemas/slider";
+import { hasUnpublishedChanges } from "../schemas/slider";
 import type { AnalyticsSummary } from "../lib/analytics/aggregate";
 import { api } from "../lib/api/client";
 import { useSliderSearch } from "../hooks/useSliders";
@@ -140,6 +141,12 @@ export function Sliders({
               {published ? <PowerOff /> : <Rocket />}
               {published ? "Disable" : "Publish"}
             </DropdownMenuItem>
+            {hasUnpublishedChanges(s) && (
+              <DropdownMenuItem onSelect={() => void action(s, "publish")}>
+                <Rocket />
+                Publish changes
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onSelect={() => onAnalytics(s)}>
               <BarChart3 />
               Analytics
@@ -294,7 +301,7 @@ export function Sliders({
                   </p>
                 </button>
                 <div className="flex justify-between items-center mt-2">
-                  <Status value={s.status} />
+                  <Status value={s.status} changes={hasUnpublishedChanges(s)} />
                   {actions(s)}
                 </div>
               </div>
@@ -345,7 +352,10 @@ export function Sliders({
                       </button>
                     </TableCell>
                     <TableCell>
-                      <Status value={s.status} />
+                      <Status
+                        value={s.status}
+                        changes={hasUnpublishedChanges(s)}
+                      />
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {(stats?.views ?? 0).toLocaleString()}

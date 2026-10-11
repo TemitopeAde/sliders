@@ -1,11 +1,12 @@
-import { appInstances } from '@wix/app-management';
-import { auth } from '@wix/essentials';
+import { appInstances } from "@wix/app-management";
+import { auth } from "@wix/essentials";
 
 export type LifecycleEventType =
-  | 'APP_INSTALLED'
-  | 'FREE_TRIAL'
-  | 'PAID_PLAN_PURCHASED'
-  | 'PAID_PLAN_CHANGED';
+  | "APP_INSTALLED"
+  | "APP_REMOVED"
+  | "FREE_TRIAL"
+  | "PAID_PLAN_PURCHASED"
+  | "PAID_PLAN_CHANGED";
 
 export type LifecycleEventInput = {
   eventType: LifecycleEventType;
@@ -17,30 +18,40 @@ export type LifecycleEventInput = {
   instanceIdHint?: string | null | undefined;
 };
 
-const NOTIFY_EMAIL = 'adesiyantope2014@gmail.com';
+// Set these in .env to change where notifications go without a code change.
+// The site owner's email is included, so the privacy policy must mention
+// this mailer as a data processor.
+const env = import.meta.env as Record<string, string | undefined>;
+const NOTIFY_EMAIL = env.LIFECYCLE_NOTIFY_EMAIL || "adesiyantope2014@gmail.com";
 // pdfstore-mailer (Vercel). Only sends to its ALLOWED_RECIPIENTS list.
-const SEND_EMAIL_ENDPOINT = 'https://pdfstore-mailer.vercel.app/api/send-email';
+const SEND_EMAIL_ENDPOINT =
+  env.LIFECYCLE_EMAIL_ENDPOINT ||
+  "https://pdfstore-mailer.vercel.app/api/send-email";
+// Sent as a bearer token when set, so the mailer can reject other callers.
+const SEND_EMAIL_SECRET = env.LIFECYCLE_EMAIL_SECRET;
 // The endpoint adds "[APP_NAME] " to the subject and uses APP_NAME as the sender name.
-const APP_NAME = 'Sliders';
+const APP_NAME = "Sliders";
 const SEND_TIMEOUT_MS = 10_000;
-const LOG_PREFIX = '[Sliders]';
+const LOG_PREFIX = "[Sliders]";
 
 const EVENT_LABELS: Record<LifecycleEventType, string> = {
-  APP_INSTALLED: 'App installed',
-  FREE_TRIAL: 'Free trial started',
-  PAID_PLAN_PURCHASED: 'Paid plan purchased',
-  PAID_PLAN_CHANGED: 'Plan upgraded',
+  APP_INSTALLED: "App installed",
+  APP_REMOVED: "App removed",
+  FREE_TRIAL: "Free trial started",
+  PAID_PLAN_PURCHASED: "Paid plan purchased",
+  // The event covers upgrades and downgrades alike.
+  PAID_PLAN_CHANGED: "Plan changed",
 };
 
 const getText = (value: unknown) =>
-  typeof value === 'string' ? value.trim() : '';
+  typeof value === "string" ? value.trim() : "";
 
 const escapeHtml = (value: string) =>
   value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 
 const toIsoDate = (value: Date | string | null | undefined) => {
   if (!value) return new Date().toISOString();
@@ -58,28 +69,37 @@ const buildEmailHtml = (rows: Array<[string, string]>, heading: string) => {
       ([label, value]) =>
         `<li><strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}</li>`,
     )
-    .join('');
+    .join("");
 
   return [
     '<!DOCTYPE html><html><body style="font-family: Arial, sans-serif; color: #222;">',
     `<h2>${escapeHtml(heading)}</h2>`,
-    itemsHtml ? `<ul>${itemsHtml}</ul>` : '<p>No details available.</p>',
-    '</body></html>',
-  ].join('');
+    itemsHtml ? `<ul>${itemsHtml}</ul>` : "<p>No details available.</p>",
+    "</body></html>",
+  ].join("");
 };
 
-const sendLifecycleEmail = async (to: string, subject: string, html: string) => {
+const sendLifecycleEmail = async (
+  to: string,
+  subject: string,
+  html: string,
+) => {
   const response = await fetch(SEND_EMAIL_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(SEND_EMAIL_SECRET
+        ? { Authorization: `Bearer ${SEND_EMAIL_SECRET}` }
+        : {}),
+    },
     body: JSON.stringify({ to, appName: APP_NAME, subject, html }),
     signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
   });
 
   if (!response.ok) {
-    const responseText = (await response.text().catch(() => '')).slice(0, 300);
+    const responseText = (await response.text().catch(() => "")).slice(0, 300);
     throw new Error(
-      `Email endpoint returned ${response.status}${responseText ? `: ${responseText}` : ''}`,
+      `Email endpoint returned ${response.status}${responseText ? `: ${responseText}` : ""}`,
     );
   }
 };
@@ -88,11 +108,11 @@ export const isFreeTrialInProgress = async (): Promise<boolean> => {
   try {
     const getAppInstance = auth.elevate(appInstances.getAppInstance);
     const { instance } = await getAppInstance();
-    return instance?.billing?.freeTrialInfo?.status === 'IN_PROGRESS';
+    return instance?.billing?.freeTrialInfo?.status === "IN_PROGRESS";
   } catch (error) {
     console.error(
       `${LOG_PREFIX} Failed to classify free trial status`,
-      error instanceof Error ? error.message : 'Unknown error',
+      error instanceof Error ? error.message : "Unknown error",
     );
     return false;
   }
@@ -103,9 +123,9 @@ export const notifyLifecycleEvent = async (input: LifecycleEventInput) => {
   const occurredAtIso = toIsoDate(input.occurredAt);
 
   let instanceId = getText(input.instanceIdHint);
-  let siteUrl = '';
-  let siteDisplayName = '';
-  let ownerEmail = '';
+  let siteUrl = "";
+  let siteDisplayName = "";
+  let ownerEmail = "";
 
   try {
     const getAppInstance = auth.elevate(appInstances.getAppInstance);
@@ -117,7 +137,7 @@ export const notifyLifecycleEvent = async (input: LifecycleEventInput) => {
   } catch (error) {
     console.error(
       `${LOG_PREFIX} Failed to load app instance for lifecycle event`,
-      error instanceof Error ? error.message : 'Unknown error',
+      error instanceof Error ? error.message : "Unknown error",
     );
   }
 
@@ -127,16 +147,16 @@ export const notifyLifecycleEvent = async (input: LifecycleEventInput) => {
   const invoiceId = getText(input.invoiceId);
 
   const detailRows: Array<[string, string]> = [
-    ['Event', label],
-    ['Site name', siteDisplayName],
-    ['Site URL', siteUrl],
-    ['Owner email', ownerEmail],
-    ['Instance ID', instanceId],
-    ['Plan', vendorProductId],
-    ['Previous plan', previousVendorProductId],
-    ['Billing cycle', cycle],
-    ['Invoice ID', invoiceId],
-    ['Occurred at', occurredAtIso],
+    ["Event", label],
+    ["Site name", siteDisplayName],
+    ["Site URL", siteUrl],
+    ["Owner email", ownerEmail],
+    ["Instance ID", instanceId],
+    ["Plan", vendorProductId],
+    ["Previous plan", previousVendorProductId],
+    ["Billing cycle", cycle],
+    ["Invoice ID", invoiceId],
+    ["Occurred at", occurredAtIso],
   ];
 
   try {
@@ -148,7 +168,7 @@ export const notifyLifecycleEvent = async (input: LifecycleEventInput) => {
   } catch (error) {
     console.error(
       `${LOG_PREFIX} Failed to send lifecycle email`,
-      error instanceof Error ? error.message : 'Unknown error',
+      error instanceof Error ? error.message : "Unknown error",
     );
   }
 };

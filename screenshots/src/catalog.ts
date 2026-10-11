@@ -105,7 +105,9 @@ function stamp(daysAgo: number) {
 }
 
 export const sliders: Slider[] = shots.map((shot) => {
-  const template = starterTemplates.find((item) => item._id === shot.templateId);
+  const template = starterTemplates.find(
+    (item) => item._id === shot.templateId,
+  );
   if (!template) throw new Error(`Missing template ${shot.templateId}`);
   const slider = templateToSlider(template, shot.name);
   return {
@@ -115,19 +117,24 @@ export const sliders: Slider[] = shots.map((shot) => {
     responsiveSettings: shot.height
       ? {
           ...slider.responsiveSettings,
-          desktop: { ...slider.responsiveSettings.desktop, height: shot.height },
+          desktop: {
+            ...slider.responsiveSettings.desktop,
+            height: shot.height,
+          },
         }
       : slider.responsiveSettings,
     createdAt: stamp(shot.daysAgo + 20),
     updatedAt: stamp(shot.daysAgo),
     slides: (shot.images.length ? shot.images : [""]).map((image, index) => {
       const slide = slider.slides[Math.min(index, slider.slides.length - 1)];
+      if (!slide) throw new Error(`Template ${shot.templateId} has no slides`);
       const title = shot.titles?.[index] ?? slide.title;
       return {
         ...structuredClone(slide),
         _id: `${shot.id}-slide-${index + 1}`,
         title,
-        description: index === 0 ? slide.description : "Thoughtfully made for everyday.",
+        description:
+          index === 0 ? slide.description : "Thoughtfully made for everyday.",
         // Layers carry the visible text, so keep them in step with each title.
         layers: slide.layers.map((layer) => ({
           ...layer,
@@ -166,7 +173,8 @@ for (let day = 29; day >= 0; day--) {
     const views = Math.round(weight * wave * (day % 6 === 0 ? 0.75 : 1));
     for (let i = 0; i < views; i++) {
       const timestamp = new Date(date.getTime() + i * 60000).toISOString();
-      const device = i % 5 === 0 ? "mobile" : i % 4 === 0 ? "tablet" : "desktop";
+      const device =
+        i % 5 === 0 ? "mobile" : i % 4 === 0 ? "tablet" : "desktop";
       const sessionId = session(day * 20 + (i % 6));
       const slideId = slider.slides[i % slider.slides.length]?._id ?? "";
       events.push({
@@ -208,8 +216,14 @@ for (let day = 29; day >= 0; day--) {
 export const analytics = aggregate(events);
 const safePhoto = (url: string) =>
   url
-    .replaceAll("photo-1541643600914-78b084683601", "photo-1523381210434-271e8be1f52b")
-    .replaceAll("photo-1542291026-7eec264c27ff", "photo-1521572163474-6864f9cf17ab");
+    .replaceAll(
+      "photo-1541643600914-78b084683601",
+      "photo-1523381210434-271e8be1f52b",
+    )
+    .replaceAll(
+      "photo-1542291026-7eec264c27ff",
+      "photo-1521572163474-6864f9cf17ab",
+    );
 export const templates = starterTemplates.map((template) => ({
   ...template,
   thumbnail: safePhoto(template.thumbnail),
@@ -220,8 +234,11 @@ export const templates = starterTemplates.map((template) => ({
 }));
 export const settings = appSettingsSchema.parse({
   analytics: true,
-  respectDnt: true,
   defaultAutoplay: false,
 });
-export const hero = sliders[0];
-export const collection = sliders[1];
+function need(slider: Slider | undefined, name: string): Slider {
+  if (!slider) throw new Error(`Missing ${name} slider`);
+  return slider;
+}
+export const hero = need(sliders[0], "hero");
+export const collection = need(sliders[1], "collection");

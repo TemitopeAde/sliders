@@ -4,9 +4,7 @@ export default {
   displayName: "slider-settings",
   fields: [
     { key: "analytics", displayName: "analytics", type: "BOOLEAN" },
-    { key: "respectDnt", displayName: "respectDnt", type: "BOOLEAN" },
     { key: "defaultAutoplay", displayName: "defaultAutoplay", type: "BOOLEAN" },
-    { key: "catalogVersion", displayName: "catalogVersion", type: "TEXT" },
   ],
   dataPermissions: {
     itemRead: "CMS_EDITOR",

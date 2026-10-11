@@ -20,6 +20,7 @@ import type {
   Device,
   Slide,
 } from "../../schemas/slider";
+import { hasUnpublishedChanges } from "../../schemas/slider";
 import { useEditor } from "../../hooks/useEditor";
 import { api } from "../../lib/api/client";
 import { Button } from "../ui/button";
@@ -53,10 +54,12 @@ export function SliderEditor({
   initial,
   onBack,
   onSaved,
+  onTemplateSaved,
 }: {
   initial: SliderModel;
   onBack: () => void;
   onSaved: (s: SliderModel) => void;
+  onTemplateSaved?: () => void;
 }) {
   const editor = useEditor(initial, onSaved);
   const { draft, change } = editor;
@@ -68,6 +71,7 @@ export function SliderEditor({
   const [leaving, setLeaving] = useState(false);
   const [deleting, setDeleting] = useState<Slide>();
   const [templateBusy, setTemplateBusy] = useState(false);
+  const [templateName, setTemplateName] = useState<string>();
   const [selectedLayer, setSelectedLayer] = useState<string>();
   const slide = draft.slides.find((s) => s._id === selected);
   // Deleting or undoing away the selected slide falls back to the first one.
@@ -98,7 +102,9 @@ export function SliderEditor({
               className="border-0 shadow-none px-0 font-semibold text-base max-w-72"
               value={draft.name}
               disabled={editor.busy}
-              onChange={(e) => change({ ...draft, name: e.target.value })}
+              onChange={(e) =>
+                change({ ...draft, name: e.target.value }, "name")
+              }
             />
             <InfoTip
               label="Slider name"
@@ -117,7 +123,7 @@ export function SliderEditor({
                   : "All changes saved"}
           </span>
         </div>
-        <Status value={draft.status} />
+        <Status value={draft.status} changes={hasUnpublishedChanges(draft)} />
         <div className="flex bg-gray-100 rounded-lg p-1">
           {(
             [
@@ -264,29 +270,7 @@ export function SliderEditor({
               variant="ghost"
               className="text-xs text-gray-500"
               disabled={templateBusy || !draft.slides.length}
-              onClick={async () => {
-                setTemplateBusy(true);
-                try {
-                  await api("templates", "POST", {
-                    name: draft.name,
-                    category: "Content",
-                    thumbnail:
-                      draft.slides[0]?.media.poster ||
-                      draft.slides[0]?.media.url ||
-                      "",
-                    settings: draft.settings,
-                    responsiveSettings: draft.responsiveSettings,
-                    slides: draft.slides,
-                  });
-                  toast.success("Design saved as a template");
-                } catch (e) {
-                  toast.error(
-                    e instanceof Error ? e.message : "Could not save template",
-                  );
-                } finally {
-                  setTemplateBusy(false);
-                }
-              }}
+              onClick={() => setTemplateName(draft.name)}
             >
               <BookmarkPlus size={14} />
               Save as template
@@ -348,6 +332,66 @@ export function SliderEditor({
             <DialogDescription>Preview · {device}</DialogDescription>
           </DialogHeader>
           <Slider slider={draft} device={device} preview />
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={templateName !== undefined}
+        onOpenChange={(v) => !v && setTemplateName(undefined)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save as template</DialogTitle>
+            <DialogDescription>
+              Reuse this design for new sliders. It appears under My templates.
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="space-y-4"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const name = templateName?.trim();
+              if (!name) return;
+              setTemplateBusy(true);
+              try {
+                // A video URL can't be shown as an image thumbnail.
+                const cover = draft.slides.find(
+                  (s) => s.media.poster || (s.type !== "video" && s.media.url),
+                )?.media;
+                await api("templates", "POST", {
+                  name,
+                  category: "Content",
+                  thumbnail: cover?.poster || cover?.url || "",
+                  settings: draft.settings,
+                  responsiveSettings: draft.responsiveSettings,
+                  slides: draft.slides,
+                });
+                setTemplateName(undefined);
+                onTemplateSaved?.();
+                toast.success("Design saved as a template");
+              } catch (err) {
+                toast.error(
+                  err instanceof Error
+                    ? err.message
+                    : "Could not save template",
+                );
+              } finally {
+                setTemplateBusy(false);
+              }
+            }}
+          >
+            <Input
+              aria-label="Template name"
+              value={templateName ?? ""}
+              maxLength={100}
+              autoFocus
+              onChange={(e) => setTemplateName(e.target.value)}
+            />
+            <div className="flex justify-end">
+              <Button disabled={templateBusy || !templateName?.trim()}>
+                {templateBusy ? "Saving…" : "Save template"}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
       <AlertDialog open={leaving} onOpenChange={setLeaving}>

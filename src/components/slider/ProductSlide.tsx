@@ -9,17 +9,25 @@ export function ProductSlide({
   slide,
   onEvent,
   preview,
+  product: loaded,
 }: {
   slide: Extract<Slide, { type: "product" }>;
   onEvent: (event: "product_click" | "add_to_cart_click") => void;
   preview: boolean;
+  product?: StoreProduct;
 }) {
-  const [product, setProduct] = useState<StoreProduct | null>(null);
+  const [product, setProduct] = useState<StoreProduct | null>(loaded ?? null);
   const [error, setError] = useState("");
+  const [cartError, setCartError] = useState("");
   const [busy, setBusy] = useState(false);
   const [added, setAdded] = useState(false);
   useEffect(() => {
     let alive = true;
+    if (loaded) {
+      setProduct(loaded);
+      setError("");
+      return;
+    }
     if (!slide.productId) {
       setError("Choose a product in the editor");
       return;
@@ -37,7 +45,7 @@ export function ProductSlide({
     return () => {
       alive = false;
     };
-  }, [slide.productId]);
+  }, [slide.productId, loaded]);
   const f = slide.productFields;
   return (
     <article className="sl-product">
@@ -99,12 +107,13 @@ export function ProductSlide({
                     disabled={busy || !product.inStock || preview}
                     onClick={async () => {
                       setBusy(true);
+                      setCartError("");
                       try {
                         await addToCart(product);
                         setAdded(true);
                         onEvent("add_to_cart_click");
                       } catch (e) {
-                        setError(
+                        setCartError(
                           e instanceof Error
                             ? e.message
                             : "Could not add to cart",
@@ -124,6 +133,7 @@ export function ProductSlide({
                   </button>
                 ))}
             </div>
+            {cartError && <p role="alert">{cartError}</p>}
           </div>
         </>
       )}

@@ -21,6 +21,7 @@ export default {
   indexes: [
     { fields: [{ path: "timestamp" }] },
     { fields: [{ path: "sliderId" }] },
+    { fields: [{ path: "sessionId" }, { path: "timestamp" }] },
   ],
   initialData: [],
 } satisfies DataCollection;

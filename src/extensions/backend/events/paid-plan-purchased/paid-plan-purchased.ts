@@ -1,8 +1,8 @@
-import { appInstances } from '@wix/app-management';
+import { appInstances } from "@wix/app-management";
 import {
   isFreeTrialInProgress,
   notifyLifecycleEvent,
-} from '../../../../backend/notify-lifecycle-event';
+} from "../../../../backend/notify-lifecycle-event";
 
 export default appInstances.onAppInstancePaidPlanPurchased(async (event) => {
   try {
@@ -10,7 +10,7 @@ export default appInstances.onAppInstancePaidPlanPurchased(async (event) => {
     const freeTrial = await isFreeTrialInProgress();
 
     await notifyLifecycleEvent({
-      eventType: freeTrial ? 'FREE_TRIAL' : 'PAID_PLAN_PURCHASED',
+      eventType: freeTrial ? "FREE_TRIAL" : "PAID_PLAN_PURCHASED",
       vendorProductId: data.vendorProductId,
       cycle: data.cycle,
       invoiceId: data.invoiceId,
@@ -19,8 +19,8 @@ export default appInstances.onAppInstancePaidPlanPurchased(async (event) => {
     });
   } catch (error) {
     console.error(
-      '[Sliders] Failed to handle paid plan purchased event',
-      error instanceof Error ? error.message : 'Unknown error',
+      "[Sliders] Failed to handle paid plan purchased event",
+      error instanceof Error ? error.message : "Unknown error",
     );
   }
 });

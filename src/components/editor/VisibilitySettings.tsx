@@ -3,6 +3,9 @@ import { Button } from "../ui/button";
 import { Choice, TextField, FieldLabel } from "../forms/Fields";
 import { visibilityValueHelp } from "../../lib/slider/editor-help";
 import { conditionSchema, type Slide } from "../../schemas/slider";
+// The site widget can't read a visitor's country or member roles, so these
+// rules never match. Kept only so older slides can still show and remove them.
+const unsupported = ["country", "role"];
 export function VisibilitySettings({
   slide,
   onChange,
@@ -43,7 +46,9 @@ export function VisibilitySettings({
             label="Rule"
             tip="Choose what to check before showing this slide. Member matches signed-in visitors; Guest matches visitors who are signed out."
             value={c.kind}
-            options={conditionSchema.shape.kind.options}
+            options={conditionSchema.shape.kind.options.filter(
+              (kind) => kind === c.kind || !unsupported.includes(kind),
+            )}
             onChange={(kind) =>
               onChange({
                 ...slide,
@@ -58,6 +63,12 @@ export function VisibilitySettings({
               })
             }
           />
+          {unsupported.includes(c.kind) && (
+            <p role="alert" className="text-xs text-amber-700">
+              This rule isn’t supported and never matches. Remove it or choose
+              another rule.
+            </p>
+          )}
           {!["member", "guest"].includes(c.kind) && (
             <TextField
               label="Value"
@@ -98,8 +109,7 @@ export function VisibilitySettings({
         Add condition
       </Button>
       <p className="text-xs text-gray-500">
-        Country and role conditions hide the slide when that visitor context is
-        unavailable.
+        Inventory rules apply to product slides only.
       </p>
       <div className="border-t pt-4 space-y-4">
         <h3 className="text-sm font-semibold">Schedule</h3>

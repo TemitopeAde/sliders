@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { Slider, SliderTemplate } from "../schemas/slider";
+import { hasUnpublishedChanges } from "../schemas/slider";
 import type { AnalyticsSummary } from "../lib/analytics/aggregate";
 import { Button } from "../components/ui/button";
 import {
@@ -188,7 +189,7 @@ export function Overview({
                       {s.slides.length} slides · {s.type}
                     </p>
                   </div>
-                  <Status value={s.status} />
+                  <Status value={s.status} changes={hasUnpublishedChanges(s)} />
                   <ArrowRight
                     size={15}
                     className="text-gray-400 transition-transform group-hover:translate-x-0.5"

@@ -146,6 +146,7 @@ function Dashboard() {
                 refresh();
               }}
               onSaved={() => refresh()}
+              onTemplateSaved={refresh}
             />
           ) : (
             <>
@@ -205,9 +206,19 @@ function Dashboard() {
                     }}
                   />
                 ) : page === "Templates" ? (
-                  <Templates templates={templateData} onUse={create} />
+                  <Templates
+                    templates={templateData}
+                    onUse={create}
+                    onChanged={refresh}
+                  />
                 ) : page === "Media" ? (
-                  <Media sliders={data} />
+                  <Media
+                    sliders={data}
+                    onCreated={(s) => {
+                      refresh();
+                      setEditing(s);
+                    }}
+                  />
                 ) : page === "Analytics" ? (
                   <Analytics
                     sliders={data}

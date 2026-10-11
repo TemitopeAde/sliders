@@ -71,13 +71,46 @@ export async function publishSlider(slider: Slider) {
     );
   // Save first so a revision conflict stops the publish before visitors see it.
   // Public data is an explicit snapshot; draft edits never leak to visitors.
-  const saved = await saveSlider({ ...slider, status: "published" });
-  await items.save(C.published, saved);
+  // saveSlider stores this as revision + 1, so the snapshot is up to date.
+  const saved = await saveSlider({
+    ...slider,
+    status: "published",
+    publishedRevision: slider.revision + 1,
+  });
+  await syncSnapshot(saved, slider, () => items.save(C.published, saved));
   return saved;
 }
 export async function disableSlider(slider: Slider) {
-  await items.remove(C.published, slider._id);
-  return saveSlider({ ...slider, status: "disabled" });
+  // Same order as publish: a revision conflict stops before the site changes.
+  const saved = await saveSlider({
+    ...slider,
+    status: "disabled",
+    publishedRevision: undefined,
+  });
+  await syncSnapshot(saved, slider, () =>
+    items.remove(C.published, slider._id),
+  );
+  return saved;
+}
+/** Applies a status change to the public snapshot. If that fails, the publish
+ * state goes back to `previous` so the dashboard matches what visitors see. */
+async function syncSnapshot(
+  saved: Slider,
+  previous: Slider,
+  write: () => Promise<unknown>,
+) {
+  try {
+    await write();
+  } catch (error) {
+    await saveSlider({
+      ...saved,
+      status: previous.status,
+      publishedRevision: previous.publishedRevision,
+    }).catch((rollback) =>
+      console.error("Could not restore slider status", saved._id, rollback),
+    );
+    throw error;
+  }
 }
 export async function deleteSlider(id: string) {
   await getSlider(id);

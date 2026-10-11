@@ -13,8 +13,17 @@ export function useEditor(initial: Slider, onSaved: (s: Slider) => void) {
   const latest = useRef(draft);
   latest.current = draft;
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
-  const change = useCallback((next: Slider) => {
-    setHistory((h) => [...h.slice(-49), latest.current]);
+  const lastMerge = useRef<{ key: string; at: number }>();
+  /** Changes sharing a `mergeKey` within a second (such as typing in one
+   * field) become a single undo step. */
+  const change = useCallback((next: Slider, mergeKey?: string) => {
+    const at = Date.now();
+    const merge =
+      !!mergeKey &&
+      lastMerge.current?.key === mergeKey &&
+      at - lastMerge.current.at < 1000;
+    lastMerge.current = mergeKey ? { key: mergeKey, at } : undefined;
+    if (!merge) setHistory((h) => [...h.slice(-49), latest.current]);
     setFuture([]);
     setDraft(next);
     setError("");
@@ -25,6 +34,7 @@ export function useEditor(initial: Slider, onSaved: (s: Slider) => void) {
     setFuture((f) => [draft, ...f]);
     setHistory((h) => h.slice(0, -1));
     setDraft(previous);
+    lastMerge.current = undefined;
   };
   const redo = () => {
     const next = future[0];

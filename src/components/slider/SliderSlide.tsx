@@ -17,6 +17,7 @@ import {
 import type { AnalyticsEvent } from "../../schemas/analytics";
 import { VideoMedia } from "./VideoMedia";
 import { ProductSlide } from "./ProductSlide";
+import type { StoreProduct } from "../../lib/wix/products";
 export type LayerPreset = "heading" | "paragraph" | "badge" | "button";
 /** Drag payload type for new layers dragged from the editor's "Add to slide" list. */
 export const LAYER_DRAG_TYPE = "application/x-slider-layer";
@@ -60,6 +61,7 @@ export function SliderSlideContent({
   preview,
   reduced,
   editing,
+  product,
 }: {
   slide: Slide;
   device: Device;
@@ -70,6 +72,8 @@ export function SliderSlideContent({
   preview: boolean;
   reduced: boolean;
   editing?: LayerEditing;
+  /** Already-loaded product data, so the slide doesn't fetch it again. */
+  product?: StoreProduct;
 }) {
   const card = useRef<HTMLElement>(null);
   const [drag, setDrag] = useState<{
@@ -82,7 +86,14 @@ export function SliderSlideContent({
   }>();
   const [dropZone, setDropZone] = useState<LayerZone>();
   if (slide.type === "product")
-    return <ProductSlide slide={slide} onEvent={onEvent} preview={preview} />;
+    return (
+      <ProductSlide
+        slide={slide}
+        onEvent={onEvent}
+        preview={preview}
+        product={product}
+      />
+    );
   const s = slide.style;
   const heading = s.inheritTypography ? settings.typography.heading : s.heading;
   const description = s.inheritTypography

@@ -13,7 +13,22 @@ import { Slider } from "../../../../components/slider/Slider";
 import { COLLECTIONS } from "../../../../lib/wix/collections";
 import { track } from "../../../../lib/analytics/tracker";
 import type { AnalyticsEvent } from "../../../../schemas/analytics";
-import { queryProducts } from "../../../../lib/wix/products";
+import {
+  getProduct,
+  queryProducts,
+  type StoreProduct,
+} from "../../../../lib/wix/products";
+// A slider holds at most 200 slides.
+const MAX_PRODUCTS = 200;
+async function collectionProducts(collectionId: string, sort: string) {
+  const all: StoreProduct[] = [];
+  for (let offset = 0; all.length < MAX_PRODUCTS; offset += 48) {
+    const page = await queryProducts("", collectionId, sort, offset);
+    all.push(...page.items);
+    if (!page.hasNext) break;
+  }
+  return all.slice(0, MAX_PRODUCTS);
+}
 export interface WidgetProps {
   sliderId: string;
   settings: string;
@@ -29,7 +44,11 @@ export function Widget({
   const [slider, setSlider] = useState<SliderModel>();
   const [editor, setEditor] = useState(false);
   const [error, setError] = useState("");
-  const [context, setContext] = useState<{ member?: boolean }>({});
+  const [products, setProducts] = useState<Record<string, StoreProduct>>({});
+  const [context, setContext] = useState<{
+    member?: boolean;
+    stock?: Record<string, boolean>;
+  }>({});
   useEffect(() => {
     let alive = true;
     setSlider(undefined);
@@ -70,35 +89,44 @@ export function Widget({
             ...result,
             responsiveSettings: responsiveSchema.parse(JSON.parse(responsive)),
           };
+        const products: Record<string, StoreProduct> = {};
         if (!isEditor && result.settings.collectionId) {
-          const products = await queryProducts(
-            "",
+          const list = await collectionProducts(
             result.settings.collectionId,
             result.settings.productSort,
           );
           result = {
             ...result,
-            slides: products.items.map((p) => ({
-              ...createSlide("product"),
-              _id: p.id,
-              type: "product" as const,
-              productId: p.id,
-              title: p.name,
-              productFields: {
-                image: true,
-                name: true,
-                description: false,
-                price: true,
-                discountedPrice: true,
-                saleBadge: true,
-                sku: false,
-                stock: false,
-                viewProduct: true,
-                addToCart: false,
-              },
-            })),
+            slides: list.map((p) =>
+              createSlide("product", {
+                _id: p.id,
+                productId: p.id,
+                title: p.name.slice(0, 160) || "Product",
+              }),
+            ),
           };
+          for (const p of list) products[p.id] = p;
         }
+        // Inventory rules need each product's stock; unknown stock stays
+        // unmatched, like the other rules.
+        if (!isEditor)
+          await Promise.all(
+            result.slides.map(async (s) => {
+              if (
+                s.type !== "product" ||
+                !s.productId ||
+                s.productId in products ||
+                !s.visibility.conditions.some((c) => c.kind === "inventory")
+              )
+                return;
+              try {
+                const p = await getProduct(s.productId);
+                if (p) products[s.productId] = p;
+              } catch (e) {
+                console.warn("Slider widget could not check stock", e);
+              }
+            }),
+          );
         // Member/guest rules need to know who is visiting; if the lookup
         // fails, those rules stay unmatched rather than guessing.
         let member: boolean | undefined;
@@ -117,7 +145,13 @@ export function Widget({
           }
         }
         if (alive) {
-          setContext({ member });
+          setContext({
+            member,
+            stock: Object.fromEntries(
+              Object.values(products).map((p) => [p.id, p.inStock]),
+            ),
+          });
+          setProducts(products);
           setSlider(result);
         }
       } catch (e) {
@@ -142,6 +176,7 @@ export function Widget({
       slider={slider}
       preview={editor}
       context={context}
+      products={products}
       onEvent={onEvent}
     />
   ) : error ? (

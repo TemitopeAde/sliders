@@ -18,6 +18,7 @@ import {
   type VisibilityContext,
 } from "../../lib/slider/visibility";
 import { SliderSlideContent, type LayerEditing } from "./SliderSlide";
+import type { StoreProduct } from "../../lib/wix/products";
 export interface SliderProps {
   slider: SliderModel;
   device?: Device;
@@ -27,6 +28,8 @@ export interface SliderProps {
   onEvent?: (event: AnalyticsEvent["event"], slideId?: string) => void;
   /** Editor only: lets layers on the selected slide be selected and dragged. */
   layerEditing?: LayerEditing;
+  /** Products already loaded for the slides, by product ID. */
+  products?: Record<string, StoreProduct>;
 }
 export function Slider({
   slider,
@@ -36,6 +39,7 @@ export function Slider({
   context,
   onEvent,
   layerEditing,
+  products,
 }: SliderProps) {
   const root = useRef<HTMLDivElement>(null);
   const [device, setDevice] = useState<Device>(forcedDevice ?? "desktop");
@@ -142,6 +146,11 @@ export function Slider({
       aria-roledescription="carousel"
       aria-label={slider.name}
       onFocusCapture={() => swiper?.autoplay?.pause()}
+      onBlurCapture={(e) => {
+        // Resume once focus leaves the slider, unless the visitor paused it.
+        if (!paused && !e.currentTarget.contains(e.relatedTarget as Node))
+          swiper?.autoplay?.resume();
+      }}
       style={{
         width: `${s.width}%`,
         maxWidth: s.maxWidth,
@@ -225,6 +234,11 @@ export function Slider({
                   reduced={reduced}
                   editing={
                     slide._id === selectedSlide ? layerEditing : undefined
+                  }
+                  product={
+                    slide.type === "product"
+                      ? products?.[slide.productId]
+                      : undefined
                   }
                 />
               </SwiperSlide>

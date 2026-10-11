@@ -1,15 +1,72 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { dashboard } from "@wix/dashboard";
-import { ImagePlus, Copy, ExternalLink } from "lucide-react";
+import { ImagePlus, Copy, ExternalLink, Layers, X } from "lucide-react";
 import { toast } from "sonner";
-import type { Slider } from "../schemas/slider";
+import { createSlide, type Slider } from "../schemas/slider";
+import { api } from "../lib/api/client";
 import { Button } from "../components/ui/button";
 import { PageHeading, Empty } from "./Shared";
-export function Media({ sliders }: { sliders: Slider[] }) {
-  const [selected, setSelected] = useState<
-    { url: string; name: string; type: string }[]
-  >([]);
+type Pick = { url: string; name: string; type: string };
+const STORE = "sliders-media-picks";
+// Picks are a per-tab convenience; the files themselves live in Wix Media.
+function loadPicks(): Pick[] {
+  try {
+    const value: unknown = JSON.parse(sessionStorage.getItem(STORE) ?? "[]");
+    return Array.isArray(value) ? (value as Pick[]) : [];
+  } catch {
+    return [];
+  }
+}
+export function Media({
+  sliders,
+  onCreated,
+}: {
+  sliders: Slider[];
+  onCreated: (slider: Slider) => void;
+}) {
+  const [selected, setSelected] = useState<Pick[]>(loadPicks);
   const [busy, setBusy] = useState(false);
+  const [creating, setCreating] = useState(false);
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(STORE, JSON.stringify(selected));
+    } catch {
+      /* Storage can be unavailable; picks then last until reload. */
+    }
+  }, [selected]);
+  const createFromPicks = async () => {
+    setCreating(true);
+    try {
+      const picks = selected.slice(0, 200);
+      const types = new Set(picks.map((p) => p.type));
+      const slider = await api<Slider>("sliders", "POST", {
+        name: `Media slider ${new Date().toLocaleDateString()}`,
+        type:
+          types.size > 1
+            ? "mixed"
+            : picks[0]?.type === "video"
+              ? "video"
+              : "image",
+      });
+      const { _id, createdAt, updatedAt, ...rest } = slider;
+      const saved = await api<Slider>(`sliders/${_id}`, "PATCH", {
+        ...rest,
+        slides: picks.map((p) =>
+          createSlide(p.type === "video" ? "video" : "image", {
+            title: p.name.slice(0, 160) || "Untitled",
+            media: { url: p.url, alt: p.name.slice(0, 300) },
+          }),
+        ),
+      });
+      setSelected([]);
+      toast.success("Slider created from your media");
+      onCreated(saved);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not create slider");
+    } finally {
+      setCreating(false);
+    }
+  };
   const used = sliders.flatMap((s) =>
     s.slides
       .filter((v) => v.media.url)
@@ -50,13 +107,38 @@ export function Media({ sliders }: { sliders: Slider[] }) {
     <>
       <PageHeading
         title="Your media, ready to shine"
-        description="Images and videos used in your sliders. Upload and manage files with Wix Media Manager."
+        description="Images and videos used in your sliders. Choose files in Wix Media Manager to start a new slider from them."
       >
         <Button disabled={busy} onClick={() => void open()}>
           <ImagePlus size={16} />
           {busy ? "Opening…" : "Open Media Manager"}
         </Button>
       </PageHeading>
+      {!!selected.length && (
+        <div className="surface p-4 mb-5 flex flex-wrap items-center gap-3">
+          <span className="text-sm flex-1">
+            {selected.length} {selected.length === 1 ? "file" : "files"} chosen
+            from Media Manager
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={creating}
+            onClick={() => setSelected([])}
+          >
+            <X size={14} />
+            Clear
+          </Button>
+          <Button
+            size="sm"
+            disabled={creating}
+            onClick={() => void createFromPicks()}
+          >
+            <Layers size={14} />
+            {creating ? "Creating…" : "Create slider from these"}
+          </Button>
+        </div>
+      )}
       {!media.length ? (
         <div className="surface">
           <Empty

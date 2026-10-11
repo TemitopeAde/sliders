@@ -17,6 +17,14 @@ export const safeUrl = z
       })(),
     "Use an https:// URL or a relative /path",
   );
+/** Media served over http would be blocked or flagged on https sites. */
+const mediaUrl = z.preprocess(
+  (value) =>
+    typeof value === "string" && value.startsWith("http://")
+      ? `https://${value.slice(7)}`
+      : value,
+  safeUrl,
+);
 export const color = z.string().regex(/^#[\da-fA-F]{3,8}$/, "Use a hex color");
 export const positionSchema = z.enum([
   "top-left",
@@ -213,9 +221,9 @@ const common = {
   link: safeUrl.default(""),
   media: z
     .object({
-      url: safeUrl.default(""),
+      url: mediaUrl.default(""),
       alt: z.string().max(300).default(""),
-      poster: safeUrl.default(""),
+      poster: mediaUrl.default(""),
       fit: z.enum(["cover", "contain", "fill"]).default("cover"),
       focalX: n(0, 100, 50),
       focalY: n(0, 100, 50),
@@ -435,6 +443,9 @@ export const sliderSchema = z.object({
   responsiveSettings: responsiveSchema.default({}),
   slides: z.array(slideSchema).max(200).default([]),
   revision: z.number().int().nonnegative().default(0),
+  /** The revision visitors see. Unset for sliders published before this
+   * was tracked, so their publish state is unknown. */
+  publishedRevision: z.number().int().nonnegative().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -452,10 +463,15 @@ export const templateSchema = z.object({
 });
 export const appSettingsSchema = z.object({
   analytics: z.boolean().default(true),
-  respectDnt: z.boolean().default(true),
   defaultAutoplay: z.boolean().default(false),
-  catalogVersion: z.enum(["V1", "V3"]).default("V1"),
 });
+/** True when a published slider has saved edits visitors don't see yet. */
+export const hasUnpublishedChanges = (
+  slider: Pick<Slider, "status" | "revision" | "publishedRevision">,
+) =>
+  slider.status === "published" &&
+  slider.publishedRevision !== undefined &&
+  slider.revision > slider.publishedRevision;
 export type Slide = z.infer<typeof slideSchema>;
 export type Layer = z.infer<typeof layerSchema>;
 export type LayerZone = z.infer<typeof positionSchema>;

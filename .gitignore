@@ -24,3 +24,7 @@ npm-debug.log*
 .DS_Store
 .idea/
 out
+
+# playwright
+test-results/
+playwright-report/
