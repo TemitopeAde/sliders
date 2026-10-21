@@ -13,14 +13,14 @@ const editorMessages: Record<PublishedSliderError, string> = {
   "": "",
   missing: "",
   unpublished:
-    "No published slider has this ID. Publish it in the Sliders dashboard, or check the ID.",
+    "No published slider has this ID. Publish it in the Slideshow Studio dashboard, or check the ID.",
   unavailable: "This slider is temporarily unavailable.",
 };
 
 type DashboardSliderProps = { sliderId: string };
 
 /**
- * Shows a slider built in the Sliders dashboard. The shared Slider ships its
+ * Shows a slider built in the Slideshow Studio dashboard. The shared Slider ships its
  * own global styles (Swiper), so it renders inside a shadow root, as it does
  * in the custom element widget.
  */

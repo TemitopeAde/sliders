@@ -1,4 +1,4 @@
-// Records the "Slider Studio" launch film from the real app UI.
+// Records the "Slideshow Studio" launch film from the real app UI.
 //
 // 1. Start the studio:  npx astro dev --config astro.shots.config.mjs --port 4340
 // 2. Run:               node launch/record-slideshow.mjs [--dry]

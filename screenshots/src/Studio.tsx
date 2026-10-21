@@ -146,7 +146,7 @@ function EditorPanel() {
             <div className="px-6 relative">
               <div className="absolute inset-x-6 -inset-y-1 border-2 border-blue-500 rounded pointer-events-none z-10" />
               <span className="absolute -top-6 left-6 z-10 text-[11px] bg-blue-500 text-white px-2 py-0.5 rounded-t">
-                Slider Studio
+                Slideshow Studio
               </span>
               <Slider slider={live} device="desktop" preview />
             </div>

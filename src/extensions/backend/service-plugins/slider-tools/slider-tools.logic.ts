@@ -259,7 +259,7 @@ export async function runSliderTool(
       throw new ApiError(
         400,
         "UNKNOWN_TOOL",
-        `Unknown Sliders tool: ${methodName ?? "(missing)"}.`,
+        `Unknown Slideshow Studio tool: ${methodName ?? "(missing)"}.`,
       );
   }
 }

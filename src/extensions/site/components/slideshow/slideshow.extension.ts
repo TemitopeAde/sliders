@@ -18,7 +18,7 @@ export default extensions.editorReactComponent({
   type: "sliders.Slideshow",
   displayName: "Slideshow",
   description:
-    "Image slideshow with captions and buttons; can also show a slider built in the Sliders dashboard",
+    "Image slideshow with captions and buttons; can also show a slider built in the Slideshow Studio dashboard",
   editorElement: merge(editorElementWithDefaults, {
     layout: {
       resizeDirection: LAYOUT.RESIZE_DIRECTION.horizontalAndVertical,

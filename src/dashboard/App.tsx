@@ -75,12 +75,12 @@ function Dashboard() {
         {!editing && (
           <aside className="sidebar">
             <div className="brand flex items-center gap-2.5 mb-10 px-2">
-              <div className="w-9 h-9 rounded-xl bg-[#4263eb] text-white flex items-center justify-center shadow-sm">
+              <div className="w-9 h-9 shrink-0 rounded-xl bg-[#4263eb] text-white flex items-center justify-center shadow-sm">
                 <Layers size={22} />
               </div>
               <div>
-                <span className="text-xl font-bold tracking-tight">
-                  Slider Studio
+                <span className="block text-xl font-bold leading-tight tracking-tight">
+                  Slideshow Studio
                 </span>
                 <p className="brand-caption text-[9px] text-gray-400 tracking-widest mb-0">
                   SLIDESHOWS FOR WIX
@@ -158,7 +158,7 @@ function Dashboard() {
                 </div>
                 <div className="flex gap-4 items-center">
                   <span className="hidden sm:inline text-[11px] text-gray-400">
-                    Slider Studio · Image, Video & Product Slider
+                    Slideshow Studio · Image, Video & Product Slider
                   </span>
                   <div
                     className="w-8 h-8 rounded-full bg-[#e8edf8] text-[#627391] grid place-items-center text-xs font-semibold"

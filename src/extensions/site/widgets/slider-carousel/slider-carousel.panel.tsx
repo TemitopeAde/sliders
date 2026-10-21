@@ -342,7 +342,7 @@ export default function Panel() {
                   ? "The slider on this widget was unpublished or deleted. Choose another slider."
                   : sliders.length
                     ? "Choose a slider to display. You can then customize how it looks and behaves here."
-                    : "Create and publish a slider in the Sliders dashboard, then reopen these settings."}
+                    : "Create and publish a slider in the Slideshow Studio dashboard, then reopen these settings."}
               </SectionHelper>
             </Box>
           ) : (

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>sliders. — Launch film</title>
+    <title>Slideshow Studio — Launch film</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -482,6 +482,7 @@
         padding: 0 8px 22px;
       }
       .brand .mark {
+        flex-shrink: 0;
         width: 36px;
         height: 36px;
         margin: 0;
@@ -489,7 +490,7 @@
         box-shadow: none;
       }
       .brand .mark .ico { width: 20px; height: 20px; }
-      .brand strong { display: block; font-size: 18px; letter-spacing: -0.04em; }
+      .brand strong { display: block; font-size: 18px; line-height: 1.15; letter-spacing: -0.04em; }
       .brand strong i { color: var(--blue); font-style: normal; }
       .brand small {
         display: block;
@@ -1464,11 +1465,11 @@
           </symbol>
         </svg>
 
-        <section class="scene dark" id="open" data-label="sliders. Make every slide count.">
+        <section class="scene dark" id="open" data-label="Slideshow Studio. Make every slide count.">
           <div class="open-lock">
             <div>
               <div class="mark ain" style="animation-delay: 0.15s"><svg class="ico"><use href="#i-layers" /></svg></div>
-              <h1 class="display ain" style="animation-delay: 0.35s">sliders<i>.</i></h1>
+              <h1 class="display ain" style="animation-delay: 0.35s">Slideshow Studio</h1>
               <p class="kicker ain" style="animation-delay: 0.7s">Make every slide count</p>
               <div class="rule"></div>
             </div>
@@ -1867,12 +1868,12 @@
           <div class="cap dark ain"><b>09</b> Media &amp; settings</div>
         </section>
 
-        <section class="scene dark" id="end" data-label="sliders. is live. Make every slide count.">
+        <section class="scene dark" id="end" data-label="Slideshow Studio is live. Make every slide count.">
           <div class="end-lock">
             <div>
               <div class="mark ain"><svg class="ico"><use href="#i-layers" /></svg></div>
               <h2 class="display ain" style="animation-delay:.15s">Now live.</h2>
-              <div class="line ain" style="animation-delay:.35s">sliders<i style="color:#8eabff;font-style:normal">.</i> &nbsp;Make every slide count.</div>
+              <div class="line ain" style="animation-delay:.35s">Slideshow Studio &nbsp;Make every slide count.</div>
               <div class="pills ain" style="animation-delay:.55s">
                 <span>Templates</span><span>Layer editor</span><span>Site widget</span><span>Analytics</span>
               </div>
@@ -1885,7 +1886,7 @@
     <button id="gate" type="button">
       <span class="gate-card">
         <span class="mark"><svg class="ico"><use href="#i-layers" /></svg></span>
-        <h1 class="display">sliders<i>.</i></h1>
+        <h1 class="display">Slideshow Studio</h1>
         <p>MAKE EVERY SLIDE COUNT</p>
         <span class="play-pill"><span><svg class="ico sm"><use href="#i-play" /></svg></span> Play launch film</span>
         <span class="gate-note">Original music · No voiceover · 1:15</span>
@@ -1950,7 +1951,7 @@
         aside.innerHTML = `
           <div class="brand">
             <div class="mark"><svg class="ico"><use href="#i-layers"/></svg></div>
-            <div><strong>sliders<i>.</i></strong><small>MAKE EVERY SLIDE COUNT</small></div>
+            <div><strong>Slideshow Studio</strong><small>MAKE EVERY SLIDE COUNT</small></div>
           </div>
           <p class="nav-label">Workspace</p>
           ${NAV.map(([name, icon]) => `<div class="nav-item${name === active ? " is-on" : ""}"><svg class="ico sm"><use href="#${icon}"/></svg>${name}${name === "Sliders" ? '<span class="count">12</span>' : ""}</div>`).join("")}

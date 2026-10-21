@@ -37,7 +37,7 @@ test("the dispatcher rejects malformed payloads before accessing data", async ()
 test("the dispatcher rejects unknown tools", async () => {
   await assert.rejects(
     runSliderTool("removeEverything", {}, wixUser),
-    /Unknown Sliders tool/,
+    /Unknown Slideshow Studio tool/,
   );
 });
 

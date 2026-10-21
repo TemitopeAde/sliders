@@ -102,7 +102,7 @@ export default function SliderPickerPanel() {
             <FormField
               label="Show"
               id="dashboard-slider"
-              infoContent="Choose a slider you published in the Sliders dashboard, or keep the slides you edit on this page."
+              infoContent="Choose a slider you published in the Slideshow Studio dashboard, or keep the slides you edit on this page."
             >
               <Dropdown
                 id="dashboard-slider"
@@ -124,7 +124,7 @@ export default function SliderPickerPanel() {
             )}
             {!sliders.length && !error && (
               <SectionHelper skin="standard">
-                Publish a slider in the Sliders dashboard to show it here.
+                Publish a slider in the Slideshow Studio dashboard to show it here.
               </SectionHelper>
             )}
           </>

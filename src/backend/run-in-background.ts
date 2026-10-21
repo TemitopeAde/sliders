@@ -1,4 +1,4 @@
-const LOG_PREFIX = '[Sliders]';
+const LOG_PREFIX = '[Slideshow Studio]';
 
 // Loaded dynamically: the Wix build also evaluates backend modules in Node, where
 // `cloudflare:workers` does not exist. Started at module load so it is ready per request.

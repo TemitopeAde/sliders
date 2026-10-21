@@ -53,7 +53,7 @@ export async function buildLifecycleSheetRecord(
   return {
     eventId, eventType, receivedAt: new Date().toISOString(),
     occurredAt: dateText(data.operationTimeStamp),
-    appName: instance.appName ?? 'Sliders',
+    appName: instance.appName ?? 'Slideshow Studio',
     appId: data.appId ?? '', appVersion: instance.appVersion ?? '',
     instanceId: event.metadata?.instanceId ?? instance.instanceId ?? '',
     accountId: event.metadata?.accountInfo?.accountId ?? '',

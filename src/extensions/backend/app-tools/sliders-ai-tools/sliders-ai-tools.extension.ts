@@ -23,7 +23,7 @@ const boolean = (description: string): JsonSchema => ({
   type: "boolean",
   description,
 });
-const sliderId = string("The Wix Sliders slider ID.");
+const sliderId = string("The Slideshow Studio slider ID.");
 const slideId = string("The slide ID within the slider.");
 const revision = integer("The slider revision returned by a prior read.");
 const slider = {
@@ -39,7 +39,7 @@ const slide = {
 const success = object(
   {
     success: boolean("Whether the operation completed."),
-    data: { type: "object", description: "The requested Sliders result." },
+    data: { type: "object", description: "The requested Slideshow Studio result." },
   },
   ["success", "data"],
 );
@@ -249,13 +249,13 @@ export const sliderTools = [
   tool(
     "getSettings",
     "Get settings",
-    "Returns Sliders app preferences. Use when a collaborator asks about analytics or autoplay defaults for new sliders.",
+    "Returns Slideshow Studio app preferences. Use when a collaborator asks about analytics or autoplay defaults for new sliders.",
     object({}),
   ),
   tool(
     "updateSettings",
     "Update settings",
-    "Updates Sliders app preferences. Use when a collaborator asks to change the default autoplay or analytics for new sliders.",
+    "Updates Slideshow Studio app preferences. Use when a collaborator asks to change the default autoplay or analytics for new sliders.",
     object(
       {
         settings: {
@@ -270,7 +270,7 @@ export const sliderTools = [
   tool(
     "getAnalytics",
     "Get analytics",
-    "Returns aggregate Sliders analytics for a date range and optional slider. Use when a collaborator asks about slider performance, views, clicks, or engagement.",
+    "Returns aggregate Slideshow Studio analytics for a date range and optional slider. Use when a collaborator asks about slider performance, views, clicks, or engagement.",
     object({
       from: string("ISO timestamp, optional."),
       to: string("ISO timestamp, optional."),
@@ -313,7 +313,7 @@ export const sliderTools = [
   tool(
     "createSliderFromSlideshow",
     "Save slideshow as slider",
-    "Saves the Slideshow component's slides as a new draft slider in the Sliders dashboard. Use when a collaborator wants scheduling, visibility rules, analytics, or product slides for slides they built on the page. Pass the component's slides and playback props; returns the new sliderId and any links that couldn't be saved.",
+    "Saves the Slideshow component's slides as a new draft slider in the Slideshow Studio dashboard. Use when a collaborator wants scheduling, visibility rules, analytics, or product slides for slides they built on the page. Pass the component's slides and playback props; returns the new sliderId and any links that couldn't be saved.",
     object(
       {
         name: string("Name for the new slider."),

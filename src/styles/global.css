@@ -238,6 +238,10 @@ button svg {
   .app-shell {
     grid-template-columns: 180px minmax(0, 1fr);
   }
+  .sidebar .brand {
+    flex-direction: column;
+    align-items: flex-start;
+  }
   .page-content {
     padding: 24px;
   }
@@ -279,6 +283,8 @@ button svg {
     display: none;
   }
   .sidebar .brand {
+    flex-direction: row;
+    align-items: center;
     margin-bottom: 16px !important;
   }
   .topbar {

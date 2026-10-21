@@ -30,9 +30,9 @@ const SEND_EMAIL_ENDPOINT =
 // Sent as a bearer token when set, so the mailer can reject other callers.
 const SEND_EMAIL_SECRET = env.LIFECYCLE_EMAIL_SECRET;
 // The endpoint adds "[APP_NAME] " to the subject and uses APP_NAME as the sender name.
-const APP_NAME = "Sliders";
+const APP_NAME = "Slideshow Studio";
 const SEND_TIMEOUT_MS = 10_000;
-const LOG_PREFIX = "[Sliders]";
+const LOG_PREFIX = "[Slideshow Studio]";
 
 const EVENT_LABELS: Record<LifecycleEventType, string> = {
   APP_INSTALLED: "App installed",

@@ -29,7 +29,7 @@ export type SlideshowProps = {
   pauseButtonVisibility?: "showAlways" | "showOnHover";
 
   /**
-   * ID of a published slider from the Sliders dashboard. When set, it is shown
+   * ID of a published slider from the Slideshow Studio dashboard. When set, it is shown
    * instead of the slides above. Left unset until a choice is made, so the
    * slider picker can tell "never chosen" from "chose this page's slides" ("").
    */
