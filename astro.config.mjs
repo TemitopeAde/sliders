@@ -1,5 +1,5 @@
 // @ts-check
-import { defineConfig } from "astro/config";
+import { defineConfig, envField } from "astro/config";
 import tailwindcss from "@tailwindcss/vite";
 import wix from "@wix/astro";
 import react from "@astrojs/react";
@@ -10,6 +10,12 @@ export default defineConfig({
   vite: { plugins: [tailwindcss()] },
   adapter: wixHostingAdapter(),
   integrations: [wix(), react()],
+  env: {
+    schema: {
+      LIFECYCLE_SHEETS_WEBHOOK_URL: envField.string({ context: 'server', access: 'secret', optional: true }),
+      LIFECYCLE_SHEETS_WEBHOOK_SECRET: envField.string({ context: 'server', access: 'secret', optional: true }),
+    },
+  },
   image: { domains: ["static.wixstatic.com"] },
   security: { checkOrigin: false },
   devToolbar: { enabled: false },

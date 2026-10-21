@@ -1,18 +1,14 @@
-import { appInstances } from "@wix/app-management";
-import { notifyLifecycleEvent } from "../../../../backend/notify-lifecycle-event";
+import { appInstances } from '@wix/app-management';
+import { notifyLifecycleEvent } from '../../../../backend/notify-lifecycle-event';
+import { recordLifecycleEvent } from '../../../../backend/record-lifecycle-event';
+import { runInBackground } from '../../../../backend/run-in-background';
 
-export default appInstances.onAppInstanceRemoved(async (event) => {
-  try {
-    // The app no longer has access to the site, so only the event's own
-    // instance ID is reported.
-    await notifyLifecycleEvent({
-      eventType: "APP_REMOVED",
-      instanceIdHint: event.metadata?.instanceId,
-    });
-  } catch (error) {
-    console.error(
-      "[Sliders] Failed to handle app removed event",
-      error instanceof Error ? error.message : "Unknown error",
-    );
-  }
+// Wix needs a fast acknowledgement; email and Sheets delivery finish after the response.
+export default appInstances.onAppInstanceRemoved((event) => {
+  // The app no longer has access to the site, so only the event's own instance ID is reported.
+  runInBackground('AppRemoved email', () => notifyLifecycleEvent({
+    eventType: 'APP_REMOVED',
+    instanceIdHint: event.metadata?.instanceId,
+  }));
+  runInBackground('AppRemoved Sheets record', () => recordLifecycleEvent('AppRemoved', event));
 });

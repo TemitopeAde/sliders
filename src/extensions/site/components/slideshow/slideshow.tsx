@@ -1,0 +1,34 @@
+import React from 'react';
+import type { FC } from 'react';
+import classNames from 'classnames';
+import styles from './slideshow.module.css';
+import type { SlideshowProps } from './slideshow.props';
+
+const Slideshow: FC<SlideshowProps> = ({
+  id,
+  className,
+  image,
+  title,
+  description,
+  direction,
+}) => {
+  return (
+    <div
+      id={id}
+      dir={direction}
+      className={classNames('slideshow', styles.slideshow, styles.fallbackDirection, className)}
+    >
+      {image?.url ? (
+        <img className={classNames('image', styles.image)} src={image.url} alt={image.alt} />
+      ) : (
+        <div className={classNames('image', styles.imagePlaceholder)} aria-hidden="true" />
+      )}
+      <div className={styles.body}>
+        <h2 className={classNames('title', styles.title)}>{title}</h2>
+        <p className={classNames('description', styles.description)}>{description}</p>
+      </div>
+    </div>
+  );
+};
+
+export default Slideshow;
