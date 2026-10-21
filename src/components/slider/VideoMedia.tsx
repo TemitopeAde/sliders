@@ -3,19 +3,21 @@ import type { Slide } from "../../schemas/slider";
 export function VideoMedia({
   slide,
   active,
+  load = true,
   style,
   onEvent,
   reduced,
 }: {
   slide: Slide;
   active: boolean;
+  load?: boolean;
   style: CSSProperties;
   onEvent: (event: "video_play" | "video_pause" | "video_completion") => void;
   reduced: boolean;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   const loaded = useRef(false);
-  if (active) loaded.current = true;
+  if (active && load) loaded.current = true;
   useEffect(() => {
     const video = ref.current;
     if (!video) return;
@@ -26,7 +28,7 @@ export function VideoMedia({
       (slide.media.autoplay || slide.media.resumeActive)
     )
       void video.play().catch(() => {});
-  }, [active, slide.media, reduced]);
+  }, [active, load, slide.media, reduced]);
   useEffect(() => {
     const pause = () => {
       if (document.hidden) ref.current?.pause();
@@ -40,7 +42,7 @@ export function VideoMedia({
       className="sl-media"
       style={style}
       src={loaded.current ? slide.media.url : undefined}
-      poster={slide.media.poster || undefined}
+      poster={(load && slide.media.poster) || undefined}
       muted={slide.media.muted}
       loop={slide.media.loop}
       controls={slide.media.controls}

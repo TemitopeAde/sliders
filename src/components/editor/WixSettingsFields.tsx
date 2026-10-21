@@ -126,6 +126,11 @@ export function WixSettingsFields({
                   <Input
                     id={id}
                     value={String(current ?? "")}
+                    maxLength={
+                      field instanceof z.ZodString
+                        ? (field.maxLength ?? undefined)
+                        : undefined
+                    }
                     onChange={(e) => update(e.target.value)}
                   />
                 )}

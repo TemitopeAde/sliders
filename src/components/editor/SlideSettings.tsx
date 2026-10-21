@@ -3,6 +3,7 @@ import { dashboard } from "@wix/dashboard";
 import { toast } from "sonner";
 import { ImagePlus, Upload, RefreshCw, Trash2, Film } from "lucide-react";
 import { uploadSlideMedia } from "../../lib/wix/upload-slide-media";
+import { formatLimit } from "../../lib/media-limits";
 import {
   slideSchema,
   imageSlideSchema,
@@ -218,20 +219,20 @@ export function SlideSettings({
                 <button
                   type="button"
                   disabled={uploading}
-                  onClick={() => void chooseMedia()}
+                  onClick={() => fileInput.current?.click()}
                   className="py-2 text-[11px] flex flex-col items-center gap-1 text-gray-600 hover:bg-gray-50 hover:text-blue-600 disabled:opacity-50"
                 >
                   <RefreshCw size={14} />
-                  Replace
+                  {uploading ? `${progress}%` : "Replace"}
                 </button>
                 <button
                   type="button"
                   disabled={uploading}
-                  onClick={() => fileInput.current?.click()}
+                  onClick={() => void chooseMedia()}
                   className="py-2 text-[11px] flex flex-col items-center gap-1 text-gray-600 hover:bg-gray-50 hover:text-blue-600 disabled:opacity-50"
                 >
-                  <Upload size={14} />
-                  {uploading ? `${progress}%` : "Upload new"}
+                  <ImagePlus size={14} />
+                  Wix Media
                 </button>
                 <button
                   type="button"
@@ -265,6 +266,8 @@ export function SlideSettings({
               </p>
               <p className="muted text-[11px] mb-3">
                 Drop a file here, upload one, or pick from Wix Media.
+                <br />
+                Max {formatLimit(kind)} per {kind}.
               </p>
               <div className="flex flex-col gap-2">
                 <Button

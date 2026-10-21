@@ -74,6 +74,7 @@ export function VisibilitySettings({
               label="Value"
               tip={visibilityValueHelp[c.kind]}
               value={c.value}
+              maxLength={200}
               onChange={(value) =>
                 onChange({
                   ...slide,

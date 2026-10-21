@@ -78,6 +78,9 @@ export const settingsHelp: Record<string, string> = {
   // Analytics
   analytics:
     "Record views and clicks for this slider. Visitors with Do Not Track on are never recorded.",
+  // Performance
+  lazyLoad:
+    "Load images and videos only when the slider is about to scroll into view, and only for the visible and next slides. Speeds up the page.",
   // Responsive (per device)
   slidesPerView: "How many slides are visible at once on this device.",
   slidesPerGroup: "How many slides move with each arrow click or swipe.",

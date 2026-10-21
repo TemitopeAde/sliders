@@ -70,11 +70,24 @@ export function Field({
     </div>
   );
 }
+/** Shows "used/limit" once text gets close to its maximum length. */
+export function CharCount({ value, max }: { value: string; max?: number }) {
+  if (!max || value.length < max * 0.8) return null;
+  return (
+    <p
+      aria-live="polite"
+      className={`text-[11px] mt-1 text-right ${value.length >= max ? "text-red-600" : "text-gray-500"}`}
+    >
+      {value.length}/{max}
+    </p>
+  );
+}
 export function TextField({
   label,
   value,
   onChange,
   type = "text",
+  hint,
   ...props
 }: {
   label: string;
@@ -84,9 +97,11 @@ export function TextField({
   min?: number;
   max?: number;
   step?: number;
+  maxLength?: number;
   placeholder?: string;
   onBlur?: () => void;
   tip?: string;
+  hint?: string;
 }) {
   const id = useId();
   const { tip, ...inputProps } = props;
@@ -100,6 +115,10 @@ export function TextField({
         onChange={(e) => onChange(e.target.value)}
         {...inputProps}
       />
+      {type !== "number" && (
+        <CharCount value={String(value)} max={props.maxLength} />
+      )}
+      {hint && <p className="text-[11px] mt-1 text-red-600">{hint}</p>}
     </div>
   );
 }
@@ -132,6 +151,8 @@ export function NumberField({
     );
   }, [value]);
   const parse = (raw: string) => (raw.trim() === "" ? NaN : Number(raw));
+  const typed = parse(text);
+  const outOfRange = Number.isFinite(typed) && (typed < min || typed > max);
   return (
     <TextField
       label={label}
@@ -141,6 +162,7 @@ export function NumberField({
       min={min}
       max={max}
       step={step}
+      hint={outOfRange ? `Use a value from ${min} to ${max}` : undefined}
       onChange={(raw) => {
         setText(raw);
         const v = parse(raw);
@@ -245,6 +267,7 @@ export function ColorField({
         <Input
           aria-label={`${label} hex`}
           value={text}
+          maxLength={9}
           onChange={(e) => {
             setText(e.target.value);
             if (/^#[\da-f]{6}$/i.test(e.target.value)) onChange(e.target.value);

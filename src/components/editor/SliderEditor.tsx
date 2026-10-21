@@ -101,6 +101,7 @@ export function SliderEditor({
               aria-label="Slider name"
               className="border-0 shadow-none px-0 font-semibold text-base max-w-72"
               value={draft.name}
+              maxLength={100}
               disabled={editor.busy}
               onChange={(e) =>
                 change({ ...draft, name: e.target.value }, "name")

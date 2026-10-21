@@ -8,11 +8,13 @@ import {
 export function ProductSlide({
   slide,
   onEvent,
+  load = true,
   preview,
   product: loaded,
 }: {
   slide: Extract<Slide, { type: "product" }>;
   onEvent: (event: "product_click" | "add_to_cart_click") => void;
+  load?: boolean;
   preview: boolean;
   product?: StoreProduct;
 }) {
@@ -60,7 +62,11 @@ export function ProductSlide({
       ) : (
         <>
           {f.image && product.image && (
-            <img loading="lazy" src={product.image} alt={product.name} />
+            <img
+              src={load ? product.image : undefined}
+              alt={product.name}
+              decoding="async"
+            />
           )}
           <div className="sl-product-content">
             {f.saleBadge && product.onSale && <small>ON SALE</small>}

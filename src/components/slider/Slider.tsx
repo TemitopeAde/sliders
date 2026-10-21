@@ -18,6 +18,11 @@ import {
   type VisibilityContext,
 } from "../../lib/slider/visibility";
 import { SliderSlideContent, type LayerEditing } from "./SliderSlide";
+import {
+  nearbySlides,
+  useLoadedSlides,
+  useNearViewport,
+} from "../../lib/slider/lazy-load";
 import type { StoreProduct } from "../../lib/wix/products";
 export interface SliderProps {
   slider: SliderModel;
@@ -95,6 +100,14 @@ export function Slider({
     : Math.min(bp.slidesPerView, Math.max(1, slides.length));
   const loop =
     s.loop && slides.length >= Math.ceil(perView) + bp.slidesPerGroup;
+  // The editor preview always shows every slide's media.
+  const lazy = s.lazyLoad && !preview;
+  const inView = useNearViewport(root, lazy);
+  const loaded = useLoadedSlides(
+    slides.map((v) => v._id),
+    nearbySlides(active, slides.length, perView, loop),
+    inView,
+  );
   useEffect(() => {
     if (!swiper || swiper.destroyed || !selectedSlide) return;
     const index = slides.findIndex((v) => v._id === selectedSlide);
@@ -230,6 +243,7 @@ export function Slider({
                     (perView > 1 && index >= active && index < active + perView)
                   }
                   onEvent={(event) => emit(event, slide._id)}
+                  load={!lazy || loaded.has(slide._id)}
                   preview={preview}
                   reduced={reduced}
                   editing={

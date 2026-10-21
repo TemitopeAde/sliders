@@ -65,6 +65,7 @@ const groups = {
   Typography: ["typography"],
   Products: ["collectionId", "productSort", "syncProducts"],
   Analytics: ["analytics"],
+  Performance: ["lazyLoad"],
 } as const;
 const labels = {
   showArrows: "Show arrows",
@@ -83,6 +84,7 @@ const labels = {
   paginationSize: "Dot size",
   paginationSpacing: "Dot spacing",
   paginationPosition: "Dots position",
+  lazyLoad: "Lazy load media",
 };
 /** When arrows or dots are switched off, only their on/off switch is shown. */
 function visibleFields(

@@ -7,6 +7,7 @@ import {
   Toggle,
   InfoTip,
   FieldLabel,
+  CharCount,
 } from "../forms/Fields";
 import { Textarea } from "../ui/textarea";
 const humanize = (value: string) =>
@@ -91,6 +92,7 @@ export function SchemaFields({
               />
             );
           if (field instanceof z.ZodString) {
+            const maxLength = field.maxLength ?? undefined;
             if (typeof current === "string" && /^#[\da-f]{6}$/i.test(current))
               return (
                 <ColorField
@@ -112,8 +114,10 @@ export function SchemaFields({
                   <Textarea
                     id={`field-${key}`}
                     value={String(current ?? "")}
+                    maxLength={maxLength}
                     onChange={(e) => change(e.target.value)}
                   />
+                  <CharCount value={String(current ?? "")} max={maxLength} />
                 </div>
               );
             return (
@@ -122,6 +126,7 @@ export function SchemaFields({
                 label={label}
                 tip={tip}
                 value={String(current ?? "")}
+                maxLength={maxLength}
                 onChange={change}
               />
             );

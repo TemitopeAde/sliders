@@ -2,25 +2,32 @@
 // Override or extend it when you need Editor-specific behavior or rendering
 // (e.g. mock data, Editor-only interactions, or a different visual state).
 
-import React from 'react';
-import type { ComponentProps, FC } from 'react';
+import React from "react";
+import type { ComponentProps, FC } from "react";
 import {
+  useIsEditMode,
   withDefaults,
   withFallbackPlaceholder,
-} from '@wix/react-component-utils';
-import Component from './slideshow';
-import { defaultProps } from './slideshow.props';
+} from "@wix/react-component-utils";
+import Component from "./slideshow";
+import { defaultProps } from "./slideshow.props";
 
 const SlideshowPreview: FC<ComponentProps<typeof Component>> = (props) => {
-  return <Component {...props} />;
+  const isEditMode = useIsEditMode();
+  return (
+    <Component
+      {...props}
+      autoPlay={isEditMode ? false : props.autoPlay}
+      pauseButtonVisibility={
+        isEditMode ? "showAlways" : props.pauseButtonVisibility
+      }
+    />
+  );
 };
 
 const SlideshowPreviewWithFallback = withFallbackPlaceholder(SlideshowPreview, {
-  requiredDataFields: ['title', 'description'],
-  rootClassName: 'slideshow',
+  requiredDataFields: ["slides"],
+  rootClassName: "slideshow",
 });
 
-export default withDefaults(
-  SlideshowPreviewWithFallback,
-  defaultProps
-);
+export default withDefaults(SlideshowPreviewWithFallback, defaultProps);

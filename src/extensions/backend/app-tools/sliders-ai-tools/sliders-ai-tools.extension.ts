@@ -61,7 +61,7 @@ export const sliderTools = [
   tool(
     "listSliders",
     "List sliders",
-    "Lists sliders, optionally filtered by name or status. Use when a collaborator asks what sliders exist or wants to find a draft, published, or disabled slider.",
+    "Lists sliders, optionally filtered by name or status. Use when a collaborator asks what sliders exist or wants to find a draft, published, or disabled slider. To place a slider on a Harmony page, use listEmbeddableSliders instead.",
     object({
       search: string("Optional name search."),
       status: {
@@ -105,7 +105,7 @@ export const sliderTools = [
   tool(
     "publishSlider",
     "Publish slider",
-    "Publishes a slider snapshot for visitors. Use when a collaborator asks to make a slider live; enabled media and product slides must be complete.",
+    "Publishes a slider snapshot for visitors. Use when a collaborator asks to make a slider live; enabled media and product slides must be complete. Once published, the slider can be shown in Wix Harmony by setting its ID as the Slideshow component's Dashboard slider ID.",
     object({ sliderId }, ["sliderId"]),
   ),
   tool(
@@ -297,6 +297,45 @@ export const sliderTools = [
     "List product collections",
     "Lists Wix Stores product collections available for product sliders. Use when a collaborator wants to source a slider from a product collection.",
     object({}),
+  ),
+  tool(
+    "listEmbeddableSliders",
+    "List sliders for the page",
+    "Lists published sliders that can be shown on a Wix Harmony page. Use when a collaborator asks to show, add, or embed one of their sliders on the page. To show one, set the returned sliderId as the Slideshow component's Dashboard slider ID (dashboardSliderId).",
+    object({ search: string("Optional slider name search.") }),
+  ),
+  tool(
+    "getSlideshowContent",
+    "Get slider as slideshow content",
+    "Converts a dashboard slider into the Slideshow component's props: slides (name, image, title, description, buttonLabel, link) plus autoPlay, intervalSeconds, and loop. Use when a collaborator asks to copy a slider's slides into the Slideshow component so they can be edited on the page. Video, product, and turned-off slides are listed in skipped.",
+    object({ sliderId }, ["sliderId"]),
+  ),
+  tool(
+    "createSliderFromSlideshow",
+    "Save slideshow as slider",
+    "Saves the Slideshow component's slides as a new draft slider in the Sliders dashboard. Use when a collaborator wants scheduling, visibility rules, analytics, or product slides for slides they built on the page. Pass the component's slides and playback props; returns the new sliderId and any links that couldn't be saved.",
+    object(
+      {
+        name: string("Name for the new slider."),
+        slides: {
+          type: "array",
+          minItems: 1,
+          maxItems: 200,
+          description:
+            "The Slideshow component's slides, each { name, image: { url, alt }, title?, description?, buttonLabel?, link?: { href, target } }.",
+          items: { type: "object" },
+        },
+        autoPlay: boolean("Whether slides advance on their own."),
+        intervalSeconds: {
+          type: "number",
+          minimum: 2,
+          maximum: 20,
+          description: "Seconds each slide stays on screen.",
+        },
+        loop: boolean("Whether the last slide returns to the first."),
+      },
+      ["name", "slides"],
+    ),
   ),
 ];
 

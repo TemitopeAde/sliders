@@ -133,6 +133,7 @@ export const settingsSchema = z.object({
   margin: n(0, 100, 0),
   shadow: z.enum(["none", "soft", "strong"]).default("none"),
   analytics: z.boolean().default(true),
+  lazyLoad: z.boolean().default(true),
   typography: z
     .object({
       heading: typographySchema.default({}),

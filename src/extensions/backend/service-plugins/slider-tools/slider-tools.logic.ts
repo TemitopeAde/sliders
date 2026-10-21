@@ -6,6 +6,12 @@ import * as repo from "../../../../lib/api/repository";
 import * as service from "../../../../lib/api/service";
 import { ApiError } from "../../../../lib/api/server";
 import { queryCollections, queryProducts } from "../../../../lib/wix/products";
+import {
+  sliderToSlideshowProps,
+  slideshowPlaybackSchema,
+  slideshowPropsToSlides,
+  slideshowSlideSchema,
+} from "../../../../lib/slider/slideshow-props";
 
 const id = z.string().min(1).max(100);
 const revision = z.number().int().nonnegative();
@@ -55,6 +61,9 @@ export const sliderToolMethods = [
   "getAnalytics",
   "listProducts",
   "listCollections",
+  "listEmbeddableSliders",
+  "getSlideshowContent",
+  "createSliderFromSlideshow",
 ] as const;
 
 const ok = async (data: Promise<unknown>) => ({
@@ -197,6 +206,55 @@ export async function runSliderTool(
     }
     case "listCollections":
       return { success: true, data: await queryCollections() };
+    case "listEmbeddableSliders": {
+      const r = parse({ search: z.string().trim().max(100).optional() });
+      const sliders = await repo.listSliders({
+        search: r.search,
+        status: "published",
+      });
+      return {
+        success: true,
+        data: sliders.map((s) => ({
+          sliderId: s._id,
+          name: s.name,
+          slideCount: s.slides.length,
+          updatedAt: s.updatedAt,
+        })),
+      };
+    }
+    case "getSlideshowContent":
+      return ok(
+        repo
+          .getSlider(parse({ sliderId: id }).sliderId)
+          .then(sliderToSlideshowProps),
+      );
+    case "createSliderFromSlideshow": {
+      const r = z
+        .object({
+          name: z.string().trim().min(1).max(100),
+          slides: z.array(slideshowSlideSchema).min(1).max(200),
+        })
+        .merge(slideshowPlaybackSchema)
+        .strict()
+        .parse(value);
+      const { slides, warnings } = slideshowPropsToSlides(r.slides);
+      const { _id, createdAt, updatedAt, ...draft } =
+        await service.createSlider({ name: r.name, type: "image" });
+      const saved = await service.updateSlider(_id, {
+        ...draft,
+        slides,
+        settings: {
+          ...draft.settings,
+          autoplay: r.autoPlay ?? draft.settings.autoplay,
+          delay: (r.intervalSeconds ?? draft.settings.delay / 1000) * 1000,
+          loop: r.loop ?? draft.settings.loop,
+        },
+      });
+      return {
+        success: true,
+        data: { sliderId: saved._id, status: saved.status, warnings },
+      };
+    }
     default:
       throw new ApiError(
         400,

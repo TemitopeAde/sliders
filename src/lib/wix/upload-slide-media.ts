@@ -1,5 +1,6 @@
 import * as tus from "tus-js-client";
 import { api } from "../api/client";
+import { uploadSizeError } from "../media-limits";
 
 type UploadedMedia = { url: string; name: string };
 
@@ -10,6 +11,8 @@ export async function uploadSlideMedia(
   if (!file.size) throw new Error("Choose a nonempty file.");
   if (!file.type)
     throw new Error("The selected file has no recognized media type.");
+  const tooLarge = uploadSizeError(file.type, file.size);
+  if (tooLarge) throw new Error(tooLarge);
 
   const { uploadUrl, uploadToken } = await api<{
     uploadUrl: string;
@@ -17,6 +20,7 @@ export async function uploadSlideMedia(
   }>("media-upload-url", "POST", {
     mimeType: file.type,
     fileName: file.name,
+    size: file.size,
   });
   if (!uploadUrl || !uploadToken)
     throw new Error("Wix did not return a resumable upload URL.");

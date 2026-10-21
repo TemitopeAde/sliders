@@ -16,6 +16,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { createSlide, type Slide } from "../../schemas/slider";
 import { uploadSlideMedia } from "../../lib/wix/upload-slide-media";
+import { formatLimit } from "../../lib/media-limits";
 import { api } from "../../lib/api/client";
 import { ProductPicker } from "./ProductPicker";
 const schema = z.object({
@@ -215,6 +216,9 @@ export function AddSlideDialog({
                 <Upload size={16} /> Upload{" "}
                 {type === "video" ? "video" : "image"} from computer
               </Button>
+              <p className="text-xs text-gray-500">
+                Max {formatLimit(type === "video" ? "video" : "image")}.
+              </p>
               {busy && (
                 <div className="space-y-1" role="status">
                   <span className="text-xs">Uploading {progress}%</span>

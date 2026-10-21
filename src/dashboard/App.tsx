@@ -80,7 +80,7 @@ function Dashboard() {
               </div>
               <div>
                 <span className="text-xl font-bold tracking-tight">
-                  Slide show
+                  Slider Studio
                 </span>
                 <p className="brand-caption text-[9px] text-gray-400 tracking-widest mb-0">
                   SLIDESHOWS FOR WIX
@@ -158,7 +158,7 @@ function Dashboard() {
                 </div>
                 <div className="flex gap-4 items-center">
                   <span className="hidden sm:inline text-[11px] text-gray-400">
-                    Slide show · Image, Video & Product Slider
+                    Slider Studio · Image, Video & Product Slider
                   </span>
                   <div
                     className="w-8 h-8 rounded-full bg-[#e8edf8] text-[#627391] grid place-items-center text-xs font-semibold"

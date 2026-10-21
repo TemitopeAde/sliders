@@ -28,6 +28,7 @@ import {
   Toggle,
   FieldLabel,
   InfoTip,
+  CharCount,
 } from "../forms/Fields";
 import { buttonHelp, layerHelp } from "../../lib/slider/editor-help";
 import { settingsHelp } from "../../lib/slider/settings-help";
@@ -256,6 +257,7 @@ function LayerSettings({
           label="Label"
           tip={buttonHelp.label}
           value={layer.text}
+          maxLength={80}
           onChange={(text) => onChange({ text })}
         />
       ) : (
@@ -269,8 +271,10 @@ function LayerSettings({
             id={`layer-${layer._id}`}
             className="bg-white"
             value={layer.text}
+            maxLength={3000}
             onChange={(e) => onChange({ text: e.target.value })}
           />
+          <CharCount value={layer.text} max={3000} />
         </div>
       )}
       {!isButton && (
@@ -365,6 +369,7 @@ function LayerSettings({
             tip={buttonHelp.url}
             placeholder="https://… or /page"
             value={layer.button.url}
+            maxLength={2048}
             onChange={(url) => onChange({ button: { ...layer.button, url } })}
           />
           <Toggle

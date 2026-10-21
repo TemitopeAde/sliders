@@ -26,6 +26,7 @@ import planReactivated from './extensions/backend/events/plan-reactivated/plan-r
 import planTransferred from './extensions/backend/events/plan-transferred/plan-transferred.extension.ts';
 
 import slideshow from './extensions/site/components/slideshow/slideshow.extension.ts';
+import slideshowPanel from './extensions/site/components/slideshow/panel.extension.ts';
 
 export default app()
   .use(myPage)
@@ -36,4 +37,4 @@ export default app()
   .use(appInstalled)
   .use(paidPlanPurchased)
   .use(paidPlanChanged)
-  .use(appRemoved).use(paidPlanAutoRenewalCancelled).use(planConvertedToPaid).use(planReactivated).use(planTransferred).use(slideshow);
+  .use(appRemoved).use(paidPlanAutoRenewalCancelled).use(planConvertedToPaid).use(planReactivated).use(planTransferred).use(slideshow).use(slideshowPanel);

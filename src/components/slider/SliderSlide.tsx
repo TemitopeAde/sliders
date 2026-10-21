@@ -58,6 +58,7 @@ export function SliderSlideContent({
   responsive,
   active,
   onEvent,
+  load = true,
   preview,
   reduced,
   editing,
@@ -69,6 +70,8 @@ export function SliderSlideContent({
   responsive: ResponsiveSettings;
   active: boolean;
   onEvent: (event: AnalyticsEvent["event"]) => void;
+  /** False until the slide is near view; its media isn't requested before then. */
+  load?: boolean;
   preview: boolean;
   reduced: boolean;
   editing?: LayerEditing;
@@ -90,6 +93,7 @@ export function SliderSlideContent({
       <ProductSlide
         slide={slide}
         onEvent={onEvent}
+        load={load}
         preview={preview}
         product={product}
       />
@@ -328,6 +332,7 @@ export function SliderSlideContent({
           <VideoMedia
             slide={slide}
             active={active}
+            load={load}
             style={mediaStyle}
             onEvent={onEvent}
             reduced={reduced}
@@ -335,9 +340,9 @@ export function SliderSlideContent({
         ) : (
           <img
             className="sl-media"
-            src={slide.media.url}
+            src={load ? slide.media.url : undefined}
             alt={slide.media.alt}
-            loading={active ? "eager" : "lazy"}
+            fetchPriority={active ? "high" : "low"}
             decoding="async"
             style={mediaStyle}
           />
